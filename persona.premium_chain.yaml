@@ -1,0 +1,24 @@
+persona_id: premium_chain
+display_name: "ClearView Auto Glass"
+style: polished_upselling
+private:
+  cost_floor_minor: 56000
+  target_total_minor: 78000
+  line_items:
+    BASE_GLASS_AND_INSTALL: 47000
+    ADAS_CALIBRATION: 24000
+    MOLDINGS_CLIPS_SENSOR_KIT: 2000
+    DISPOSAL_ENVIRONMENTAL: 1000
+    TAX: 4000
+  concessions:
+    - trigger: verified_competitor_all_in
+      action: discount_minor_10000
+  refusal_conditions: [unverified_competitor_claim]
+public:
+  starts_itemized: true
+  interrupts: false
+  asks_if_ai: true
+  quotes_in_one_call: true
+  offers_written_confirmation: true
+  quote_validity: "2 weeks"
+  friction_notes: "Professional and complete. Will discount only against verified leverage."

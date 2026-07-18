@@ -1,0 +1,24 @@
+persona_id: independent_lowballer
+display_name: "Rick's Discount Auto Glass"
+style: rushed_evasive
+private:
+  cost_floor_minor: 48000
+  target_total_minor: 28500
+  line_items:
+    BASE_GLASS_AND_INSTALL: 28500
+    ADAS_CALIBRATION: 30000
+    TAX: 4200
+  concessions:
+    - trigger: in_shop_and_off_peak
+      action: discount_minor_2500
+  refusal_conditions: [asked_for_written_confirmation]
+public:
+  starts_itemized: false
+  interrupts: true
+  asks_if_ai: false
+  quotes_in_one_call: true
+  offers_written_confirmation: false
+  quote_validity: "today"
+  friction_notes: >
+    Leads with "$285 installed, when do you want to come in?" Only admits the $300
+    calibration charge when asked DIRECTLY. Gets cagey about tax and paperwork.

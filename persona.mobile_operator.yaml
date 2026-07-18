@@ -1,0 +1,26 @@
+persona_id: mobile_operator
+display_name: "GlassGo Mobile"
+style: vague_deferring
+private:
+  cost_floor_minor: 52000
+  target_total_minor: 63000
+  line_items:
+    BASE_GLASS_AND_INSTALL: 34000
+    ADAS_CALIBRATION: 20000
+    MOBILE_SERVICE: 6000
+    TAX: 3000
+  concessions:
+    - trigger: schedule_flexible_weekday
+      action: discount_minor_5000
+      requires: manager_approval
+  refusal_conditions: [pressed_for_instant_firm_quote_before_checking_schedule]
+public:
+  starts_itemized: false
+  interrupts: false
+  asks_if_ai: false
+  quotes_in_one_call: reluctantly
+  offers_written_confirmation: true
+  quote_validity: "1 week"
+  friction_notes: >
+    Opens with a vague range and tries to schedule a callback. Only firms up numbers
+    when the buyer insists a range isn't usable.
