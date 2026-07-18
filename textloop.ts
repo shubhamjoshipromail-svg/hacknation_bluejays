@@ -7,6 +7,8 @@ import { applyRedFlags, computeKnownTotal, freezeSpecCore, mintCompetitorOfferFa
 
 type Phase = "QUOTE" | "NEGOTIATION";
 type Persona = { persona_id:string; display_name:string; private:{target_total_minor:number;line_items:Partial<Record<FeeCategory,number>>;concessions:{trigger:string;action:string}[]}; public:{offers_written_confirmation:boolean;quote_validity:string} };
+type Tactic = { honesty_class:"ALWAYS_ALLOWED"|"TRUTHFUL_REQUIRES_POLICY_ALLOW"|"TRUTHFUL_REQUIRES_USER_AUTHORIZATION"; phrasing_pattern:string; log_as:string };
+type Playbook = { tactics:Record<string,Tactic>; selection_rules:{observed:{style:string;example?:string};plan:string[]}[] };
 type Turn = { turnId:string; callId:string; speaker:"PROVIDER"|"BUYER_AGENT"; text:string };
 export const transcriptTurns = new Map<string,Turn>();
 export const provenance = new Map<string,ProvenanceAnchor>();
@@ -23,6 +25,13 @@ export const jobSpec:JobSpec={specId:"spec_demo",revision:1,vertical:"auto_glass
 function recordTurn(callId:string,speaker:Turn["speaker"],text:string){const turn={turnId:`turn_${randomUUID()}`,callId,speaker,text};transcriptTurns.set(turn.turnId,turn);console.log(`${speaker}: ${text}`);return turn;}
 function anchor(turn:Turn,claimType:ProvenanceAnchor["claimType"]){const p:ProvenanceAnchor={provenanceId:`prov_${randomUUID()}`,conversationId:turn.callId,turnId:turn.turnId,speaker:turn.speaker,transcriptExcerpt:turn.text,claimType,extractionMethod:"LIVE_TOOL",confidence:1};provenance.set(p.provenanceId,p);return p.provenanceId;}
 function persona(id:string):Persona{return YAML.parse(fs.readFileSync(`persona.${id}.yaml`,"utf8"))}
+const playbook:Playbook=YAML.parse(fs.readFileSync("negotiation-playbook.yaml","utf8"));
+export function planNegotiation(summary:string,authorization:{policyAllow:boolean;userTradeoffs:boolean}){
+  const normalized=summary.toLowerCase();
+  const rule=playbook.selection_rules.find(r=>normalized.includes(r.observed.style)||Boolean(r.observed.example&&normalized.includes(r.observed.example)));
+  return (rule?.plan??[]).filter(name=>{const klass=playbook.tactics[name].honesty_class;return klass==="ALWAYS_ALLOWED"||(klass==="TRUTHFUL_REQUIRES_POLICY_ALLOW"&&authorization.policyAllow)||(klass==="TRUTHFUL_REQUIRES_USER_AUTHORIZATION"&&authorization.userTradeoffs)}).map(name=>({name,...playbook.tactics[name]}));
+}
+function logTactic(name:string){console.log(`[TACTIC] ${name}`)}
 function expiry(label:string){const d=new Date();d.setUTCDate(d.getUTCDate()+(label==="today"?1:label==="1 week"?7:14));return d.toISOString()}
 
 /** Tool implementations are the sole writers of quote facts, totals and outcomes. */
@@ -44,14 +53,18 @@ export async function runConversation(personaId:string,phase:Phase="QUOTE",initi
     recordTurn(callId,"BUYER_AGENT",`I'm calling about your earlier all-in quote of $${(initial.totals.statedAllInMinor!/100).toFixed(2)}.`);
     const decision=tools.request_leverage(callId,personaId,"PRICE_MATCH",1,0);
     if(decision.decision!=="ALLOW"||!decision.allowedStatement)return tools.close_call(callId,personaId,"DECLINED","policy denied leverage",null);
+    const plan=planNegotiation(personaId,{policyAllow:true,userTradeoffs:jobSpec.core.schedule.flexible});
+    if(plan.some(t=>t.name==="anchor_verified_quote"))logTactic("anchor_verified_quote");
     recordTurn(callId,"BUYER_AGENT",decision.allowedStatement);
     recordTurn(callId,"BUYER_AGENT","Can you match it or waive a fee?");
+    if(plan.some(t=>t.name==="strategic_silence"))logTactic("strategic_silence");
     const concession=p.private.concessions.find(c=>c.trigger==="verified_competitor_all_in");
     if(!concession)return tools.close_call(callId,personaId,"DECLINED","provider declined verified price request",null);
     console.log(`[TRIGGER] ${personaId}: ${concession.trigger} → ${concession.action}`);
     const amount=Number(concession.action.match(/\d+/)?.[0]??0), revised=initial.totals.statedAllInMinor!-amount;
     const providerTurn=recordTurn(callId,"PROVIDER",`I can revise the all-in total to $${(revised/100).toFixed(2)}.`);
     const negotiated=tools.record_counteroffer(initial,callId,revised,providerTurn);quotes.push(negotiated);
+    if(plan.some(t=>t.name==="summarize_commit"))logTactic("summarize_commit");
     recordTurn(callId,"BUYER_AGENT",`Confirming the revised all-in total is $${(revised/100).toFixed(2)}, including calibration and tax. The customer makes the final decision.`);
     return tools.close_call(callId,personaId,"QUOTED","provider confirmed revised all-in total",negotiated.quoteId);
   }

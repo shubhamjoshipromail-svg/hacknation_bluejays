@@ -1,0 +1,82 @@
+version: 1
+tactics:
+  anchor_verified_quote:
+    source: "Fisher & Ury — objective criteria; anchoring"
+    when: "A VerifiedFact exists (policy returned ALLOW). Open the negotiation with it."
+    honesty_class: TRUTHFUL_REQUIRES_POLICY_ALLOW
+    phrasing_pattern: >
+      Speak the allowedStatement verbatim, then one calibrated ask:
+      "Is that something you're able to match?"
+    log_as: anchor_verified_quote
+  calibrated_question:
+    source: "Voss — calibrated 'how/what' questions"
+    when: "Any refusal or pushback."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: >
+      "What would it take to get this closer to $X?"
+    log_as: calibrated_question
+  labeling:
+    source: "Voss — labeling emotions/positions"
+    when: "Provider is defensive, rushed, or proud."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: >
+      "It sounds like the calibration is where most of the cost sits."
+    log_as: labeling
+  forced_itemization:
+    source: "Fisher & Ury — objective criteria"
+    when: "Provider gives a headline price or vague bundle."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: >
+      "So I can compare fairly, can you break that down — glass, calibration,
+      any mobile fee, and tax?"
+    log_as: forced_itemization
+  range_collapse:
+    source: "Procurement practice — ranges are not quotes"
+    when: "Provider quotes a range."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: >
+      "For this exact vehicle with the details I gave you, what would the actual number be?"
+    log_as: range_collapse
+  concession_trade:
+    source: "Fisher & Ury — never concede without exchange"
+    when: "Provider refuses a match but user-authorized tradeoffs exist."
+    honesty_class: TRUTHFUL_REQUIRES_USER_AUTHORIZATION
+    phrasing_pattern: >
+      "If we bring it to your shop on a weekday morning instead of mobile service,
+      could you take the mobile fee off?"
+    log_as: concession_trade
+  strategic_silence:
+    source: "Voss — the pause after an ask"
+    when: "Immediately after any price ask."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: "(after the ask, stop talking — one full turn of silence)"
+    log_as: strategic_silence
+  summarize_commit:
+    source: "Cialdini — commitment & consistency"
+    when: "Any agreed change."
+    honesty_class: ALWAYS_ALLOWED
+    phrasing_pattern: "Confirm the agreed all-in price, scope, validity, and writing."
+    log_as: summarize_commit
+  principled_walkaway:
+    source: "Fisher & Ury — BATNA"
+    when: "Only when a better verified quote exists and provider is final."
+    honesty_class: TRUTHFUL_REQUIRES_POLICY_ALLOW
+    phrasing_pattern: >
+      "The customer does have a stronger verified option, so we may go that way."
+    log_as: principled_walkaway
+excluded_forever:
+  - fake_urgency_or_deadline
+  - invented_competing_bid
+  - bluffed_walkaway_without_real_alternative
+  - emotional_manipulation_or_guilt
+  - misrepresenting_job_or_vehicle
+  - threats_or_reputational_pressure
+selection_rules:
+  - observed: { style: evasive_or_bundled, example: independent_lowballer }
+    plan: [labeling, forced_itemization, calibrated_question, summarize_commit]
+  - observed: { style: professional_itemized, example: premium_chain }
+    plan: [anchor_verified_quote, strategic_silence, concession_trade, summarize_commit]
+  - observed: { style: vague_range_deferring, example: mobile_operator }
+    plan: [range_collapse, calibrated_question, concession_trade, summarize_commit]
+  - observed: { style: hostile_or_refusing }
+    plan: [labeling, calibrated_question]
