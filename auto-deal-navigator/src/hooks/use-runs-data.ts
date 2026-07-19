@@ -71,6 +71,7 @@ function adapt(n: NegotiationData) {
     .sort((a, b) => Number(b.stage === "NEGOTIATED") - Number(a.stage === "NEGOTIATED"))
     .map((o) => ({
       quoteId: o.quoteId,
+      providerId: o.providerId,
       provider: n.providers.find((p) => p.providerId === o.providerId)?.name ?? o.providerId,
       location: "Phone quote",
       callStatus: "COMPLETE",
@@ -80,7 +81,15 @@ function adapt(n: NegotiationData) {
         category: CATEGORY_LABELS[item.category] ?? item.category,
         status: item.status === "NOT_APPLICABLE" ? "EXCLUDED" : item.status,
       })),
-      transcriptTurns: [],
+      transcriptTurns: (n.calls.find((call) => call.callId === o.callId)?.transcript ?? []).map(
+        (turn) => ({
+          turnId: turn.turnId,
+          speaker: turn.speaker,
+          text: turn.text,
+          timestamp:
+            turn.timeSeconds == null ? "--:--" : `00:${String(turn.timeSeconds).padStart(2, "0")}`,
+        }),
+      ),
       events: n.events
         .filter((e) => e.detail.includes(o.providerId))
         .map((e) => ({
@@ -92,6 +101,9 @@ function adapt(n: NegotiationData) {
       redFlags: [...o.redFlags.map((f) => f.detail), ...n.redFlags.map((f) => f.detail)],
       originalOfferMinor: o.stage === "INITIAL" ? o.totals.statedAllInMinor : undefined,
       revisedOfferMinor: o.stage === "NEGOTIATED" ? o.totals.statedAllInMinor : undefined,
+      canonicalTotalMinor: o.totals.statedAllInMinor,
+      comparability: o.comparability,
+      reconciliation: o.totals.reconciliation,
     }));
   const calls: Quote[] = n.calls.map((call) => ({
     quoteId: call.callId,
@@ -122,23 +134,25 @@ function adapt(n: NegotiationData) {
       })),
     redFlags: [],
   }));
-  const ranking: RankingEntry[] = quotes.map((q) => {
-    const completeness = Math.round(
-      (q.lineItems.filter((item) => item.status !== "UNKNOWN").length /
-        Math.max(q.lineItems.length, 1)) *
-        100,
-    );
-    const trust = q.redFlags.length ? 45 : 100;
-    const logistics = q.lineItems.some((item) => item.category === "Mobile service") ? 75 : 50;
-    const price = 100;
-    return {
-      quoteId: q.quoteId,
-      provider: q.provider,
-      score: Math.round((price + completeness + trust + logistics) / 4),
-      componentScores: { price, completeness, trust, logistics },
-      visiblePenalties: q.redFlags,
-      explanation: n.recommendation?.summary ?? "Awaiting validated recommendation",
-    };
+  const ranking: RankingEntry[] = n.ranking.flatMap((entry) => {
+    const q = quotes.find((quote) => quote.quoteId === entry.quoteId);
+    if (!entry.eligible || entry.score == null || !entry.componentScores || !q) return [];
+    return [
+      {
+        quoteId: q.quoteId,
+        provider: q.provider,
+        score: Math.round(entry.score),
+        componentScores: {
+          price: Math.round((entry.componentScores.price / 45) * 100),
+          completeness: Math.round((entry.componentScores.completeness / 20) * 100),
+          trust: Math.round((entry.componentScores.scopeQuality / 15) * 100),
+          logistics: Math.round((entry.componentScores.schedule / 10) * 100),
+        },
+        visiblePenalties: entry.visiblePenalties,
+        explanation:
+          n.recommendation?.reasons.join(" ") ?? "Comparable offer ranked by backend policy",
+      },
+    ];
   });
   const policyDecisions: PolicyDecision[] = n.policyDecisions.map((decision) => ({
     id: decision.decisionId,

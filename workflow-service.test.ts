@@ -21,6 +21,14 @@ describe("three-provider sandbox coordinator",()=>{
     await advanceSandboxWorkflow(n.negotiationId,starter);expect(started.at(-1)).toMatchObject({providerId:"sandbox_provider_3",phase:"QUOTE_COLLECTION"});
     recordCall(n.negotiationId,{callId:started.at(-1)!.callId,providerId:providers[2].providerId,conversationId:"conv_three",status:"COMPLETE",outcome:"QUOTED",reason:"done"});attachOffer(n.negotiationId,offer(providers[2].providerId,97500,started.at(-1)!.callId));
     await advanceSandboxWorkflow(n.negotiationId,starter);expect(started.at(-1)).toMatchObject({providerId:"sandbox_provider_3",phase:"NEGOTIATION"});
-    await advanceSandboxWorkflow(n.negotiationId,starter);expect(started.filter(item=>item.phase==="NEGOTIATION")).toHaveLength(1);expect(getNegotiation(n.negotiationId).benchmark.classification).toBe("VERIFIED");
+    const negotiationCall=started.at(-1)!;
+    attachOffer(n.negotiationId,{...offer(providers[2].providerId,85000,negotiationCall.callId),quoteId:"quote_three_revised",offerVersion:2,stage:"NEGOTIATED" as const});
+    recordCall(n.negotiationId,{callId:negotiationCall.callId,providerId:providers[2].providerId,conversationId:`conv_${negotiationCall.callId}`,phase:"NEGOTIATION",status:"COMPLETE",outcome:"QUOTED",reason:"Provider confirmed revised all-in offer"});
+    const completed=await advanceSandboxWorkflow(n.negotiationId,starter);
+    expect(started.filter(item=>item.phase==="NEGOTIATION")).toHaveLength(1);
+    expect(completed.state).toBe("recommendation_ready");
+    expect(completed.offers.some(item=>item.stage==="NEGOTIATED"&&item.totals.statedAllInMinor===85000)).toBe(true);
+    expect(completed.recommendation?.offerId).toBeTruthy();
+    expect(getNegotiation(n.negotiationId).benchmark.classification).toBe("VERIFIED");
   });
 });

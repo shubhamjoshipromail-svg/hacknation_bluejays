@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { formatMoney, totalMinor, type Quote, type RankingEntry } from "@/lib/mock-data";
+import { formatMoney, quoteTotalMinor, type Quote, type RankingEntry } from "@/lib/mock-data";
 import { useRunsData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
@@ -96,13 +96,13 @@ function RecommendationPage() {
                 onClick={() =>
                   setEv({
                     label: "All-in total",
-                    value: formatMoney(totalMinor(winnerQuote.lineItems)),
+                    value: formatMoney(quoteTotalMinor(winnerQuote)),
                     quoteId: winnerQuote.quoteId,
                   })
                 }
                 className="mono text-3xl font-semibold text-foreground hover:text-primary underline decoration-dotted underline-offset-8"
               >
-                {formatMoney(totalMinor(winnerQuote.lineItems))}
+                {formatMoney(quoteTotalMinor(winnerQuote))}
               </button>
               <span className="text-xs text-muted-foreground">all-in · tap for evidence</span>
             </div>
@@ -153,7 +153,7 @@ function RankRow({
   onEvidence: (e: EvidenceCtx) => void;
 }) {
   const q = quotes.find((x) => x.quoteId === r.quoteId) ?? quotes[0];
-  const total = totalMinor(q.lineItems);
+  const total = quoteTotalMinor(q);
   return (
     <article className="panel p-5">
       <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto] gap-5 items-start">

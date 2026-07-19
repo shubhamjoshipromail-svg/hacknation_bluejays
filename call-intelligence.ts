@@ -9,6 +9,7 @@ const questions:Record<CallFactKey,string>={
 const optional:CallFactKey[]=["MOBILE_SERVICE","MOLDINGS_CLIPS_SENSOR_KIT","DISPOSAL_ENVIRONMENTAL","SHOP_SUPPLIES","AVAILABILITY","WRITTEN_CONFIRMATION","PRICE_CHANGE_CONDITIONS","REPRESENTATIVE","CALLBACK","QUOTE_REFERENCE","QUOTE_VALIDITY","ALL_IN_SCOPE"];
 const feeMap:Partial<Record<CallFactKey,QuoteLineItem["category"]>>={BASE_PRICE:"BASE_GLASS_AND_INSTALL",ADAS_INCLUDED:"ADAS_CALIBRATION",ADAS_PRICE:"ADAS_CALIBRATION",MOBILE_SERVICE:"MOBILE_SERVICE",MOLDINGS_CLIPS_SENSOR_KIT:"MOLDINGS_CLIPS_SENSOR_KIT",DISPOSAL_ENVIRONMENTAL:"DISPOSAL_ENVIRONMENTAL",SHOP_SUPPLIES:"SHOP_SUPPLIES",TAX:"TAX"};
 const resolved=(fact:CallIntelligenceFact|undefined)=>Boolean(fact&&(fact.status==="KNOWN"||fact.status==="NOT_APPLICABLE"));
+const included=(fact:CallIntelligenceFact|undefined)=>Boolean(fact&&(fact.itemStatus==="INCLUDED"||fact.itemStatus==="NOT_APPLICABLE"||/\b(all[- ]?in|included|yes)\b/i.test(fact.value??"")));
 const factValue=(fact:Pick<CallIntelligenceFact,"status"|"value"|"amountMinor"|"itemStatus">)=>JSON.stringify(fact.amountMinor!=null?[fact.status,fact.amountMinor,fact.itemStatus]:[fact.status,fact.value?.trim().toLowerCase()??null,fact.itemStatus]);
 
 export function ensureIntelligence(call:NegotiationCall){call.intelligence??={facts:[],askedTopics:[],contradictions:[],lastProviderTurnId:null,criticalGaps:[],optionalGaps:[],completionStatus:"NOT_QUOTABLE",canClose:false,updatedAt:new Date().toISOString()};return call.intelligence}
@@ -16,11 +17,15 @@ export function ensureIntelligence(call:NegotiationCall){call.intelligence??={fa
 export function summarizeCallIntelligence(negotiation:Negotiation,call:NegotiationCall){
   const intelligence=ensureIntelligence(call),byKey=new Map(intelligence.facts.map(f=>[f.key,f])),critical:CallFactKey[]=[];
   if(negotiation.intake.damage.service==="NOT_SURE")critical.push("SERVICE_RECOMMENDATION");
-  critical.push("TOTAL","BASE_PRICE","TAX","GLASS_TYPE","WARRANTY");
+  critical.push("TOTAL","ALL_IN_SCOPE","TAX","GLASS_TYPE","WARRANTY");
+  const allInConfirmed=included(byKey.get("ALL_IN_SCOPE"));
+  if(!allInConfirmed)critical.push("BASE_PRICE");
   const adasPossible=negotiation.intake.vehicle.frontCamera||negotiation.intake.features.includes("NOT_SURE");
-  if(adasPossible){critical.push("ADAS_INCLUDED");const adas=byKey.get("ADAS_INCLUDED");if(adas?.status==="KNOWN"&&adas.itemStatus!=="EXCLUDED"&&adas.itemStatus!=="NOT_APPLICABLE"&&adas.value?.toLowerCase()!=="no")critical.push("ADAS_TYPE","ADAS_PRICE")}
+  if(adasPossible)critical.push("ADAS_INCLUDED");
   const unresolved=intelligence.contradictions.filter(c=>!c.resolved),criticalGaps=[...new Set(critical)].filter(key=>!resolved(byKey.get(key))||unresolved.some(c=>c.key===key)),optionalGaps=optional.filter(key=>!resolved(byKey.get(key))&&!criticalGaps.includes(key));
-  const hasTotal=resolved(byKey.get("TOTAL"))&&byKey.get("TOTAL")?.amountMinor!=null,completionStatus=unresolved.length?"NEEDS_ONE_CLARIFICATION":!hasTotal?"NOT_QUOTABLE":criticalGaps.length?"USABLE_BUT_INCOMPLETE":"READY_TO_CLOSE",canClose=hasTotal&&!unresolved.length;
+  const tax=byKey.get("TAX");
+  if(tax?.itemStatus==="EXCLUDED"&&tax.amountMinor==null&&!criticalGaps.includes("TAX"))criticalGaps.push("TAX");
+  const hasTotal=resolved(byKey.get("TOTAL"))&&byKey.get("TOTAL")?.amountMinor!=null,completionStatus=unresolved.length?"NEEDS_ONE_CLARIFICATION":!hasTotal?"NOT_QUOTABLE":criticalGaps.length?"USABLE_BUT_INCOMPLETE":"READY_TO_CLOSE",canClose=hasTotal&&!unresolved.length&&!criticalGaps.length;
   intelligence.criticalGaps=criticalGaps;intelligence.optionalGaps=optionalGaps;intelligence.completionStatus=completionStatus;intelligence.canClose=canClose;
   const recommended=[...new Set([...unresolved.map(c=>c.key),...criticalGaps,...optionalGaps])].slice(0,3);
   return {facts:intelligence.facts,askedTopics:intelligence.askedTopics,contradictions:intelligence.contradictions,criticalGaps,optionalGaps,recommendedGoals:recommended.map(key=>({key,question:questions[key]})),completionStatus,canClose,benchmark:{classification:negotiation.benchmark.classification,expectedRangeMinor:negotiation.benchmarkContext?.expectedRangeMinor??[negotiation.benchmark.lowMinor,negotiation.benchmark.highMinor],sourceLabel:negotiation.benchmark.sourceLabel,requiredQuestions:negotiation.benchmarkContext?.requiredQuestions??[],warnings:negotiation.benchmarkContext?.warnings??negotiation.benchmark.notes,directionalOnly:negotiation.benchmark.classification!=="VERIFIED"}};

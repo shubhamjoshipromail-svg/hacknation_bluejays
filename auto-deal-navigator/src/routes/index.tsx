@@ -30,6 +30,7 @@ function IntakeForm({ onCreated }: { onCreated: () => Promise<void> }) {
       vin = String(form.get("vin") ?? "")
         .trim()
         .toUpperCase();
+    const selectedFeatures = form.getAll("features") as SandboxIntakeRequest["features"];
     const payload: SandboxIntakeRequest = {
       vehicle: {
         year: Number(form.get("year")),
@@ -43,7 +44,7 @@ function IntakeForm({ onCreated }: { onCreated: () => Promise<void> }) {
         location: String(form.get("damageLocation")) as SandboxIntakeRequest["damage"]["location"],
         drivable: form.get("drivable") === "on",
       },
-      features: form.getAll("features") as SandboxIntakeRequest["features"],
+      features: selectedFeatures.length ? selectedFeatures : ["NOT_SURE"],
       postalCode: String(form.get("zip") ?? ""),
       insuranceInvolved: form.get("insurance") === "on",
       schedulePreference: String(form.get("schedule") ?? "").trim() || null,

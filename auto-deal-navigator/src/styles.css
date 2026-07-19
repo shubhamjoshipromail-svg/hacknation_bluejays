@@ -50,50 +50,53 @@
 }
 
 :root {
-  color-scheme: dark;
-  --radius: 0.5rem;
-  /* Fintech dark: near-black with a hint of blue */
-  --background: oklch(0.16 0.014 260);
-  --foreground: oklch(0.96 0.005 260);
-  --panel: oklch(0.19 0.015 260);
-  --panel-2: oklch(0.22 0.016 260);
-  --card: oklch(0.19 0.015 260);
-  --card-foreground: oklch(0.96 0.005 260);
-  --popover: oklch(0.2 0.016 260);
-  --popover-foreground: oklch(0.96 0.005 260);
-  --primary: oklch(0.78 0.16 155);
-  --primary-foreground: oklch(0.16 0.014 260);
-  --secondary: oklch(0.26 0.018 260);
-  --secondary-foreground: oklch(0.96 0.005 260);
-  --muted: oklch(0.24 0.016 260);
-  --muted-foreground: oklch(0.68 0.02 260);
-  --accent: oklch(0.28 0.02 260);
-  --accent-foreground: oklch(0.96 0.005 260);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.28 0.018 260);
-  --input: oklch(0.26 0.018 260);
-  --ring: oklch(0.65 0.14 200);
-  --success: oklch(0.75 0.16 155);
-  --success-foreground: oklch(0.16 0.014 260);
-  --warning: oklch(0.8 0.15 75);
-  --warning-foreground: oklch(0.16 0.014 260);
-  --danger: oklch(0.65 0.22 25);
-  --danger-foreground: oklch(0.98 0 0);
-  --info: oklch(0.7 0.14 230);
+  color-scheme: light;
+  --radius: 0.625rem;
 
-  --sidebar: oklch(0.14 0.013 260);
-  --sidebar-foreground: oklch(0.9 0.005 260);
-  --sidebar-primary: oklch(0.78 0.16 155);
-  --sidebar-primary-foreground: oklch(0.16 0.014 260);
-  --sidebar-accent: oklch(0.22 0.016 260);
-  --sidebar-accent-foreground: oklch(0.96 0.005 260);
-  --sidebar-border: oklch(0.24 0.016 260);
-  --sidebar-ring: oklch(0.65 0.14 200);
+  /* Calm automotive editorial system: airy canvas, navy hierarchy, amber detail. */
+  --background: oklch(0.975 0.009 244);
+  --foreground: oklch(0.285 0.055 252);
+  --panel: oklch(1 0 0);
+  --panel-2: oklch(0.962 0.012 244);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.285 0.055 252);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.285 0.055 252);
+  --primary: oklch(0.39 0.105 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.015 244);
+  --secondary-foreground: oklch(0.31 0.065 252);
+  --muted: oklch(0.95 0.011 244);
+  --muted-foreground: oklch(0.52 0.035 250);
+  --accent: oklch(0.925 0.025 244);
+  --accent-foreground: oklch(0.31 0.065 252);
+  --destructive: oklch(0.56 0.205 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.86 0.018 244);
+  --input: oklch(0.88 0.018 244);
+  --ring: oklch(0.56 0.13 247);
+  --success: oklch(0.47 0.13 153);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.59 0.155 55);
+  --warning-foreground: oklch(0.26 0.055 50);
+  --danger: oklch(0.56 0.205 27);
+  --danger-foreground: oklch(0.99 0 0);
+  --info: oklch(0.51 0.13 238);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.78 0.16 155 / 0.15), oklch(0.65 0.14 200 / 0.1));
-  --shadow-panel: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px -12px oklch(0 0 0 / 0.5);
-  --shadow-glow: 0 0 40px -10px oklch(0.78 0.16 155 / 0.35);
+  --sidebar: oklch(0.992 0.004 244);
+  --sidebar-foreground: oklch(0.285 0.055 252);
+  --sidebar-primary: oklch(0.39 0.105 250);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.022 244);
+  --sidebar-accent-foreground: oklch(0.31 0.065 252);
+  --sidebar-border: oklch(0.87 0.018 244);
+  --sidebar-ring: oklch(0.56 0.13 247);
+
+  --brand-orange: oklch(0.66 0.16 54);
+  --gradient-hero: linear-gradient(135deg, oklch(0.945 0.032 244), oklch(0.985 0.012 72));
+  --shadow-panel:
+    0 1px 2px oklch(0.27 0.045 250 / 0.04), 0 12px 32px -24px oklch(0.27 0.07 250 / 0.28);
+  --shadow-glow: 0 8px 24px -14px oklch(0.39 0.105 250 / 0.45);
 }
 
 @utility panel {
@@ -101,6 +104,10 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 @utility mono {
@@ -131,9 +138,82 @@
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
+    min-width: 320px;
+    background-image:
+      linear-gradient(90deg, oklch(0.39 0.105 250 / 0.025) 1px, transparent 1px),
+      linear-gradient(oklch(0.39 0.105 250 / 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  h1,
+  h2,
+  h3 {
+    color: oklch(0.27 0.07 252);
+    text-wrap: balance;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    outline: none;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled) {
+    cursor: pointer;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 2.75rem;
+    color: var(--color-foreground);
+    background-color: oklch(1 0 0);
+    border-color: var(--color-input);
+    box-shadow: 0 1px 2px oklch(0.27 0.045 250 / 0.04);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):hover,
+  select:hover,
+  textarea:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 35%, var(--color-border));
+  }
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 16%, transparent);
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary);
+  }
+  button:focus-visible,
+  a:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 22%, transparent);
+  }
+  ::placeholder {
+    color: color-mix(in oklab, var(--color-muted-foreground) 72%, transparent);
   }
   ::selection {
-    background: color-mix(in oklab, var(--color-primary) 40%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 20%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

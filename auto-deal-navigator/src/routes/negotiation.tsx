@@ -19,8 +19,14 @@ export const Route = createFileRoute("/negotiation")({
 
 function NegotiationPage() {
   const { quotes, policyDecisions, negotiation } = useRunsData();
-  const initial = quotes.find((q) => q.originalOfferMinor !== undefined),
-    revised = quotes.find((q) => q.revisedOfferMinor !== undefined),
+  const negotiationCall = negotiation?.calls.find((call) => call.phase === "NEGOTIATION"),
+    targetProviderId = negotiationCall?.providerId,
+    initial = targetProviderId
+      ? quotes.find((q) => q.providerId === targetProviderId && q.originalOfferMinor !== undefined)
+      : undefined,
+    revised = targetProviderId
+      ? quotes.find((q) => q.providerId === targetProviderId && q.revisedOfferMinor !== undefined)
+      : undefined,
     savings =
       (initial?.originalOfferMinor ?? 0) -
       (revised?.revisedOfferMinor ?? initial?.originalOfferMinor ?? 0);
@@ -29,8 +35,9 @@ function NegotiationPage() {
       <div className="px-6 py-10 md:px-10">
         <h1 className="text-3xl font-semibold">Negotiation trail</h1>
         <div className="panel mt-6 p-8 text-sm text-muted-foreground">
-          Negotiation begins only after the sandbox provider confirms a usable quote. No competitor
-          claim is allowed without a separate comparable quote.
+          {negotiation?.offers.length
+            ? "The quote round is saved, but no callback negotiation was eligible. At least two reconciled, comparable all-in quotes with different prices are required."
+            : "Negotiation begins only after the providers confirm usable quotes. No competitor claim is allowed without a separate comparable quote."}
         </div>
       </div>
     );
