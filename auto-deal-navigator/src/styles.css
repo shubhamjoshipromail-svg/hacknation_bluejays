@@ -50,62 +50,62 @@
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --radius: 0.75rem;
-  /* Deep operational canvas: calm enough for long sessions, vivid where action matters. */
-  --background: oklch(0.145 0.019 263);
-  --foreground: oklch(0.96 0.005 260);
-  --panel: oklch(0.185 0.022 263);
-  --panel-2: oklch(0.215 0.024 263);
-  --card: oklch(0.19 0.015 260);
-  --card-foreground: oklch(0.96 0.005 260);
-  --popover: oklch(0.2 0.016 260);
-  --popover-foreground: oklch(0.96 0.005 260);
-  --primary: oklch(0.82 0.17 151);
-  --primary-foreground: oklch(0.16 0.014 260);
-  --secondary: oklch(0.26 0.018 260);
-  --secondary-foreground: oklch(0.96 0.005 260);
-  --muted: oklch(0.24 0.016 260);
-  --muted-foreground: oklch(0.7 0.024 260);
-  --accent: oklch(0.28 0.02 260);
-  --accent-foreground: oklch(0.96 0.005 260);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.285 0.025 263);
-  --input: oklch(0.26 0.018 260);
-  --ring: oklch(0.65 0.14 200);
-  --success: oklch(0.75 0.16 155);
-  --success-foreground: oklch(0.16 0.014 260);
-  --warning: oklch(0.8 0.15 75);
-  --warning-foreground: oklch(0.16 0.014 260);
-  --danger: oklch(0.65 0.22 25);
-  --danger-foreground: oklch(0.98 0 0);
-  --info: oklch(0.7 0.14 230);
+  /* Cherry blossom: warm white foundation with restrained blush and mint accents. */
+  --background: #fffdfc;
+  --foreground: #201b1d;
+  --panel: #ffffff;
+  --panel-2: #fff8f8;
+  --card: #ffffff;
+  --card-foreground: #201b1d;
+  --popover: #ffffff;
+  --popover-foreground: #201b1d;
+  --primary: #b84f6b;
+  --primary-foreground: #ffffff;
+  --secondary: #f2c7c7;
+  --secondary-foreground: #4a292f;
+  --muted: #f8f1f1;
+  --muted-foreground: #786d70;
+  --accent: #f6e6e7;
+  --accent-foreground: #5d303a;
+  --destructive: #c9475d;
+  --destructive-foreground: #ffffff;
+  --border: #eadfe1;
+  --input: #ded1d4;
+  --ring: #c45e79;
+  --success: #3c8063;
+  --success-foreground: #ffffff;
+  --warning: #a66d19;
+  --warning-foreground: #ffffff;
+  --danger: #c9475d;
+  --danger-foreground: #ffffff;
+  --info: #547a95;
 
-  --sidebar: oklch(0.125 0.019 263);
-  --sidebar-foreground: oklch(0.9 0.005 260);
-  --sidebar-primary: oklch(0.78 0.16 155);
-  --sidebar-primary-foreground: oklch(0.16 0.014 260);
-  --sidebar-accent: oklch(0.22 0.016 260);
-  --sidebar-accent-foreground: oklch(0.96 0.005 260);
-  --sidebar-border: oklch(0.24 0.016 260);
-  --sidebar-ring: oklch(0.65 0.14 200);
+  --sidebar: #fffafa;
+  --sidebar-foreground: #272123;
+  --sidebar-primary: #b84f6b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6e8e9;
+  --sidebar-accent-foreground: #4a292f;
+  --sidebar-border: #eadfe1;
+  --sidebar-ring: #c45e79;
 
   --gradient-hero: linear-gradient(
     125deg,
-    oklch(0.82 0.17 151 / 0.16),
-    oklch(0.7 0.14 230 / 0.09) 55%,
+    color-mix(in oklab, #ffb7c5 30%, transparent),
+    color-mix(in oklab, #d5f3d8 28%, transparent) 55%,
     transparent 85%
   );
-  --shadow-panel: 0 1px 0 oklch(1 0 0 / 0.055) inset, 0 20px 55px -34px oklch(0 0 0 / 0.8);
-  --shadow-glow: 0 0 48px -16px oklch(0.82 0.17 151 / 0.42);
+  --shadow-panel: 0 1px 2px rgb(57 35 41 / 0.03), 0 14px 40px -28px rgb(79 42 53 / 0.28);
+  --shadow-glow: 0 0 48px -20px rgb(184 79 107 / 0.28);
 }
 
 @utility panel {
   background: linear-gradient(
     155deg,
-    color-mix(in oklab, var(--color-panel-2) 42%, var(--color-panel)),
-    var(--color-panel) 42%
+    #ffffff,
+    color-mix(in oklab, var(--color-panel-2) 38%, #ffffff) 58%
   );
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -145,8 +145,8 @@
   }
   body {
     background:
-      radial-gradient(circle at 74% -10%, oklch(0.55 0.12 220 / 0.12), transparent 38rem),
-      radial-gradient(circle at 22% 110%, oklch(0.72 0.16 151 / 0.07), transparent 32rem),
+      radial-gradient(circle at 82% -8%, rgb(255 183 197 / 0.2), transparent 34rem),
+      radial-gradient(circle at 18% 105%, rgb(213 243 216 / 0.3), transparent 32rem),
       var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";

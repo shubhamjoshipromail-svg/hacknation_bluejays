@@ -3,7 +3,7 @@ import { FileCheck2, PhoneCall, Scale, Handshake, Trophy, Radio, ShieldCheck } f
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { to: "/", label: "Job Spec", icon: FileCheck2, step: "01" },
+  { to: "/", label: "Your Job", icon: FileCheck2, step: "01" },
   { to: "/calls", label: "Live Calls", icon: PhoneCall, step: "02" },
   { to: "/compare", label: "Compare Quotes", icon: Scale, step: "03" },
   { to: "/negotiation", label: "Negotiation", icon: Handshake, step: "04" },
@@ -28,7 +28,7 @@ export function AppSidebar() {
               </div>
             </div>
           </div>
-          <div className="mt-5 rounded-lg border border-sidebar-border bg-white/[0.025] p-3">
+          <div className="mt-5 rounded-lg border border-sidebar-border bg-white/70 p-3 shadow-sm">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               <span>Active run</span>
               <span className="inline-flex items-center gap-1.5 text-success">
@@ -72,7 +72,7 @@ export function AppSidebar() {
                     "flex h-7 w-7 items-center justify-center rounded-md border text-[9px] mono transition-colors",
                     active
                       ? "border-primary/35 bg-primary/10 text-primary"
-                      : "border-sidebar-border bg-white/[0.02] text-muted-foreground/70",
+                      : "border-sidebar-border bg-white text-muted-foreground/70",
                   )}
                 >
                   {item.step}
@@ -84,7 +84,7 @@ export function AppSidebar() {
           })}
         </nav>
 
-        <div className="m-3 rounded-lg border border-sidebar-border bg-white/[0.025] p-3.5 text-[11px] text-muted-foreground">
+        <div className="m-3 rounded-lg border border-sidebar-border bg-white/70 p-3.5 text-[11px] text-muted-foreground shadow-sm">
           <div className="mb-3 flex items-center gap-2 text-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             <span className="font-medium">Guardrail status</span>
