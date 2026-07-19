@@ -41,9 +41,13 @@ evaluation/
   reports/        run artifacts (committed baseline + gitignored later runs)
 ```
 
-## Known baseline failures (by design, candidates for Phase B diagnosis)
+## Improvement-loop history
 
-- `SCHED-04` fails `FACT-AVAILABILITY` and `SCHEDULE-COMPATIBILITY`: the brain's `canClose`
-  does not consider the customer's schedule urgency, so the agent can close a quote without
-  ever asking for an appointment window. This is the first reproducible failure the
-  improvement loop should diagnose and patch.
+- Baseline `baseline-0df3b61.json` caught two defects: `canClose` ignored open critical gaps
+  (SPEC-03), and the brain never asked for an appointment window even under customer schedule
+  urgency (SCHED-04).
+- The first was fixed upstream in `34b0490` (validated beforehand as
+  `candidate-teammate-wip-on-0df3b61.json`).
+- The second was fixed by this branch: `AVAILABILITY` becomes a critical fact whenever the
+  intake carries a `schedulePreference`, and `recommend()` downgrades `ACCEPT` to `CLARIFY`
+  until a human confirms the appointment window fits that preference.

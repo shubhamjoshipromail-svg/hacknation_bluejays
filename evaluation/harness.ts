@@ -45,19 +45,21 @@ export function runDriver(scenario:Scenario,ids:{callId:string;providerId:string
   if(mode==="naive"){
     const v=shop.respond("TOTAL");
     if(v)state=record("TOTAL",v);
-    return {closeError,providerTurns,outcome:close("QUOTED","confirmed headline price")};
+    const naiveOutcome=close("QUOTED","confirmed headline price");
+    return {closeError,providerTurns,outcome:naiveOutcome};
   }
   const unanswerable=new Set<string>();
   const disconnectAt=scenario.events?.find(e=>e.type==="DISCONNECT")?.afterProviderTurns??null;
   for(let i=0;i<25;i++){
     if(disconnectAt!=null&&providerTurns>=disconnectAt)return {closeError,providerTurns,outcome:dispatch("close_call",{outcome:"DROPPED",reason:"call disconnected mid-quote"})};
-    if(state.canClose)return {closeError,providerTurns,outcome:close("QUOTED","provider confirmed the usable all-in quote")};
+    if(state.canClose){const closed=close("QUOTED","provider confirmed the usable all-in quote");return {closeError,providerTurns,outcome:closed}}
     const goals=state.recommendedGoals.map(g=>g.key);
     const goal=goals.find(k=>shop.available(k)!=null)??goals.find(k=>!unanswerable.has(k));
-    if(!goal)return {closeError,providerTurns,outcome:close("CALLBACK_REQUIRED","provider could not complete a usable quote")};
+    if(!goal){const closed=close("CALLBACK_REQUIRED","provider could not complete a usable quote");return {closeError,providerTurns,outcome:closed}}
     const v=shop.respond(goal);
     if(!v){unanswerable.add(goal);state=record(goal,{utterance:"I can't really say on that one.",facts:[{key:goal,status:"REFUSED",value:"provider would not answer"}]});continue}
     state=record(goal,v);
   }
-  return {closeError,providerTurns,outcome:close("CALLBACK_REQUIRED","turn limit reached")};
+  const fallback=close("CALLBACK_REQUIRED","turn limit reached");
+  return {closeError,providerTurns,outcome:fallback};
 }

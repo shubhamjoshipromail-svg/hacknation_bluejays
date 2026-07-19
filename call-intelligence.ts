@@ -22,6 +22,7 @@ export function summarizeCallIntelligence(negotiation:Negotiation,call:Negotiati
   if(!allInConfirmed)critical.push("BASE_PRICE");
   const adasPossible=negotiation.intake.vehicle.frontCamera||negotiation.intake.features.includes("NOT_SURE");
   if(adasPossible)critical.push("ADAS_INCLUDED");
+  if(negotiation.intake.schedulePreference)critical.push("AVAILABILITY");
   const unresolved=intelligence.contradictions.filter(c=>!c.resolved),criticalGaps=[...new Set(critical)].filter(key=>!resolved(byKey.get(key))||unresolved.some(c=>c.key===key)),optionalGaps=optional.filter(key=>!resolved(byKey.get(key))&&!criticalGaps.includes(key));
   const tax=byKey.get("TAX");
   if(tax?.itemStatus==="EXCLUDED"&&tax.amountMinor==null&&!criticalGaps.includes("TAX"))criticalGaps.push("TAX");
