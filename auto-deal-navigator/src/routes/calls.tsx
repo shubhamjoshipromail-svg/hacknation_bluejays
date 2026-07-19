@@ -141,9 +141,12 @@ function CallCard({ q }: { q: Quote }) {
 }
 
 function LiveCallsPage() {
-  const { calls: CALLS } = useRunsData();
+  const { calls: CALLS, negotiation } = useRunsData();
   const completed = CALLS.filter((call) => call.callStatus === "COMPLETE").length;
   const active = CALLS.filter((call) => call.callStatus === "ON_CALL").length;
+  const startedQuoteCalls =
+    negotiation?.calls.filter((call) => call.phase === "QUOTE_COLLECTION").length ?? 0;
+  const remaining = Math.max(0, (negotiation?.providers.length ?? 1) - startedQuoteCalls);
   return (
     <div className="px-6 py-8 md:px-10 md:py-10">
       <header className="mb-6">
@@ -166,8 +169,7 @@ function LiveCallsPage() {
               <span className="text-info">●</span> {active} on call
             </span>
             <span>
-              <span className="text-muted-foreground">●</span> {Math.max(0, 1 - CALLS.length)}{" "}
-              remaining
+              <span className="text-muted-foreground">●</span> {remaining} remaining
             </span>
           </div>
         </div>

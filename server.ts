@@ -6,7 +6,7 @@ import { dispatchTool, TOOL_NAMES } from "./tools.js";
 import { mutate, snapshot, store, type Turn } from "./store.js";
 import { addDocument, addFollowUp, attachOffer, closeNegotiation, createNegotiation, createNegotiationFromVin, currentNegotiation, findNegotiationByCallId, getNegotiation, recommend, recordApproval, recordCall } from "./negotiation-service.js";
 import { decodeVin } from "./vin-service.js";
-import { submitSandboxWorkflow, type CallStarter } from "./workflow-service.js";
+import { advanceSandboxWorkflow, submitSandboxWorkflow, type CallStarter } from "./workflow-service.js";
 import { startElevenLabsCall } from "./elevenlabs-call-service.js";
 
 const MAX_WEBHOOK_AGE_SECONDS=30*60;
@@ -17,7 +17,7 @@ type WebhookEvent={type:string;event_timestamp?:number;data?:{conversation_id?:s
 function ingestWebhook(event:WebhookEvent,startCall:CallStarter=startElevenLabsCall){
   const data=event.data??{},conversationId=String(data.conversation_id??""),vars=data.conversation_initiation_client_data?.dynamic_variables??{},callId=vars.call_id??conversationId,providerId=vars.provider_id??"UNKNOWN";
   if(event.type==="call_initiation_failure"){
-    try{const n=findNegotiationByCallId(callId);recordCall(n.negotiationId,{callId,providerId,conversationId:conversationId||null,status:"FAILED",outcome:"DROPPED",reason:`call initiation failure: ${data.failure_reason??"unknown"}`})}
+    try{const n=findNegotiationByCallId(callId);recordCall(n.negotiationId,{callId,providerId,conversationId:conversationId||null,status:"FAILED",outcome:"DROPPED",reason:`call initiation failure: ${data.failure_reason??"unknown"}`});void advanceSandboxWorkflow(n.negotiationId,startCall).catch(error=>console.error(`[sandbox advance ${n.negotiationId}]`,error))}
     catch{mutate(s=>s.outcomes.push({callId,providerId,outcome:"DROPPED",reason:`call initiation failure: ${data.failure_reason??"unknown"}`,quoteId:null,callbackWindow:null,endedAt:new Date().toISOString()}))}
     return;
   }
@@ -31,9 +31,7 @@ function ingestWebhook(event:WebhookEvent,startCall:CallStarter=startElevenLabsC
       const p=n.evidence.find(e=>e.provenanceId===provenanceId);
       if(p&&!finalTexts.some(t=>t.includes(p.transcriptExcerpt)||p.transcriptExcerpt.includes(t)))mutate(()=>store.negotiations[n.negotiationId].redFlags.push({code:"TRANSCRIPT_EVIDENCE_MISMATCH",severity:"HIGH",detail:`${quote.quoteId}/${item.category} evidence was not found in the final transcript`}));
     }
-    const recommendation=n.offers.length?recommend(n.negotiationId).recommendation:n.recommendation;
-    const initial=n.offers.find(q=>q.callId===callId&&q.stage==="INITIAL");
-    if(call.phase==="QUOTE_COLLECTION"&&outcome==="QUOTED"&&initial?.comparability==="COMPARABLE"&&initial.totals.reconciliation==="MATCH"&&recommendation?.action==="COUNTER"&&!n.calls.some(c=>c.phase==="NEGOTIATION"))void startCall(n.negotiationId,providerId,"NEGOTIATION").catch(error=>console.error(`[automatic negotiation ${n.negotiationId}]`,error));
+    void advanceSandboxWorkflow(n.negotiationId,startCall).catch(error=>console.error(`[sandbox advance ${n.negotiationId}]`,error));
   }catch(error){console.warn(`[WEBHOOK_UNMATCHED] ${callId}:`,error)}
 }
 

@@ -287,8 +287,16 @@ function Workspace() {
           </div>
           {provider ? (
             <>
-              <p className="mt-4 text-sm font-semibold">{provider.name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{provider.locationLabel}</p>
+              <div className="mt-4 space-y-2">
+                {n.providers.map((item, index) => (
+                  <div key={item.providerId} className="rounded border border-border px-2 py-1.5">
+                    <p className="text-sm font-semibold">
+                      {index + 1}. {item.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{item.locationLabel}</p>
+                  </div>
+                ))}
+              </div>
               <span className="mt-4 inline-flex rounded border border-warning/40 bg-warning/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning">
                 Sandbox configured number
               </span>

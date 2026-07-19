@@ -294,7 +294,7 @@ describe("post-call persistence", () => {
       transcript: [{ speaker: "SHOP", text: "We cannot quote that today." }],
     });
   });
-  it("persists tool-extracted quote evidence, validates the transcript, recommends, and starts negotiation", async () => {
+  it("persists tool-extracted quote evidence and does not invent leverage with one provider", async () => {
     const callId = "call_quote",
       n = callContext(callId),
       secret = "webhook-secret";
@@ -450,6 +450,6 @@ describe("post-call persistence", () => {
     });
     expect(result.recommendation?.action).toBe("COUNTER");
     expect(result.redFlags).toEqual([]);
-    expect(negotiationStarted).toBe(true);
+    expect(negotiationStarted).toBe(false);
   });
 });

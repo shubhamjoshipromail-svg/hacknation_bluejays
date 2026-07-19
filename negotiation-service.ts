@@ -30,7 +30,8 @@ export function createNegotiation(input: unknown) {
   mutate(s => { s.negotiations[n.negotiationId] = n; s.currentNegotiationId = n.negotiationId; });
   return structuredClone(n);
 }
-export function createSandboxNegotiation(input:unknown,provider:Provider){
+export function createSandboxNegotiation(input:unknown,providerInput:Provider|Provider[]){
+  const providers=Array.isArray(providerInput)?providerInput:[providerInput];if(!providers.length)throw new Error("at least one sandbox provider is required");
   const request=SandboxIntake.parse(input),createdAt=now();
   const serviceText=request.damage.service==="NOT_SURE"?"windshield repair or replacement assessment":`windshield ${request.damage.service.toLowerCase()}`;
   const intake=Intake.parse({
@@ -44,9 +45,9 @@ export function createSandboxNegotiation(input:unknown,provider:Provider){
   const b=benchmark();
   const n:NegotiationType={negotiationId:id("neg"),mode:"SANDBOX",state:"calls_ready",intake,benchmark:b,strategy:strategyFor(intake,b),
     approvals:[{approvalId:id("approval"),action:"CONFIRM_SPEC",approved:true,details:"Confirmed by Find and call providers submission",createdAt},{approvalId:id("approval"),action:"START_CALLS",approved:true,details:"Sandbox provider calls authorized by submission",createdAt}],
-    calls:[],providers:[provider],evidence:[],verifiedFacts:[],policyDecisions:[],benchmarkContext:null,offers:[],callIds:[],redFlags:[],recommendation:null,followUps:[],events:[],createdAt,updatedAt:createdAt};
+    calls:[],providers,evidence:[],verifiedFacts:[],policyDecisions:[],benchmarkContext:null,offers:[],callIds:[],redFlags:[],recommendation:null,followUps:[],events:[],createdAt,updatedAt:createdAt};
   event(n,"NEGOTIATION_CREATED","Sandbox intake submitted and provider calling authorized");
-  event(n,"PROVIDER_DISCOVERED",`${provider.name} discovered from explicit sandbox configuration`);
+  for(const provider of providers)event(n,"PROVIDER_DISCOVERED",`${provider.name} discovered from explicit sandbox configuration`);
   mutate(s=>{s.negotiations[n.negotiationId]=n;s.currentNegotiationId=n.negotiationId});
   return structuredClone(n);
 }

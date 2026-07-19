@@ -89,7 +89,7 @@ The lower-level endpoints below remain for validation, tests, and future provide
 3. Start the backend with `npm run server` and the frontend with `npm run dev` inside `auto-deal-navigator`.
 4. Open `http://localhost:8080`, enter the minimal intake, and choose **Find and call sandbox provider**.
 
-The UI should immediately show the discovered sandbox provider and queued/in-progress state. Tool calls save evidence while the call is live. The signed final webhook replaces partial turns with the complete transcript, materializes the quote, reconciles the total, and produces a recommendation. A negotiation callback starts only for a comparable reconciled quote whose deterministic recommendation is `COUNTER`.
+The UI immediately shows the configured sandbox providers and queued/in-progress state. With providers two and three configured, quote calls run sequentially: each final webhook advances to the next provider. Comparison waits until every configured quote call reaches a terminal outcome. One negotiation callback may then target the highest comparable quote that has a lower verified competing quote; the final webhook recomputes the recommendation. Tool calls save evidence while each call is live.
 
 ## Adaptive conversation brain
 
