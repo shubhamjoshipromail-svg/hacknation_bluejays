@@ -97,10 +97,6 @@ function ComparePage() {
   const { quotes: QUOTES } = useRunsData();
   const [drawer, setDrawer] = useState<DrawerCtx | null>(null);
 
-  const redFlagsByQuote: Record<string, Record<string, string>> = {
-    q_ricks: { "ADAS calibration": "Calibration omitted" },
-  };
-
   return (
     <div className="px-6 py-8 md:px-10 md:py-10">
       <header className="mb-6">
@@ -167,7 +163,6 @@ function ComparePage() {
                         <Cell
                           key={q.quoteId}
                           item={li}
-                          redFlag={redFlagsByQuote[q.quoteId]?.[cat]}
                           onClick={() => li && setDrawer({ quote: q, item: li })}
                         />
                       );
@@ -179,21 +174,41 @@ function ComparePage() {
                     <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
                       ALL-IN TOTAL
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      verified categories only
-                    </div>
+                    <div className="text-[11px] text-muted-foreground">as stated by the shop</div>
                   </td>
                   {QUOTES.map((q) => {
                     const total = quoteTotalMinor(q);
                     const unknown = hasUnknown(q.lineItems);
+                    const itemized = q.computedKnownMinor ?? 0;
+                    const mismatch = q.reconciliation === "TOTAL_MISMATCH";
+                    const bundled =
+                      !mismatch && itemized === 0 && total != null && q.lineItems.length > 0;
                     return (
                       <td key={q.quoteId} className="px-4 py-4 text-right align-top">
-                        <div className="mono text-lg font-semibold text-foreground">
+                        <div
+                          className={cn(
+                            "mono text-lg font-semibold",
+                            mismatch
+                              ? "text-danger line-through decoration-danger/60"
+                              : "text-foreground",
+                          )}
+                        >
                           {formatMoney(total)}
                         </div>
-                        {unknown && (
+                        {mismatch && (
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-sm border border-danger/40 bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger">
+                            <AlertTriangle className="h-2.5 w-2.5" /> items sum to{" "}
+                            {formatMoney(itemized)} — not reconciled, excluded from ranking
+                          </div>
+                        )}
+                        {!mismatch && unknown && (
                           <div className="mt-0.5 mono text-[10px] text-warning">
                             + unknown categories
+                          </div>
+                        )}
+                        {bundled && (
+                          <div className="mt-0.5 text-[10px] text-muted-foreground">
+                            bundled total — shop did not itemize
                           </div>
                         )}
                       </td>

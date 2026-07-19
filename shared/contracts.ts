@@ -1,5 +1,5 @@
 export type RunMode="SANDBOX";
-export type CallPhase="QUOTE_COLLECTION"|"NEGOTIATION";
+export type CallPhase="QUOTE_COLLECTION"|"NEGOTIATION"|"CONFIRMATION";
 export type CallStatus="QUEUED"|"IN_PROGRESS"|"COMPLETE"|"FAILED";
 export type CallOutcome="QUOTED"|"CALLBACK_REQUIRED"|"DECLINED"|"DROPPED";
 
@@ -24,6 +24,7 @@ export interface RunView{
   calls:Array<{callId:string;providerId:string;conversationId:string|null;twilioCallSid:string|null;phase:CallPhase;status:CallStatus;outcome:CallOutcome|null;reason:string|null;transcript:Array<{turnId:string;speaker:"AGENT"|"SHOP";text:string;timeSeconds:number|null}>;draft:null|{lineItems:Array<{category:string;rawLabel:string;amountMinor:number|null;status:"INCLUDED"|"EXCLUDED"|"NOT_APPLICABLE"|"UNKNOWN";provenanceIds:string[]}>;statedTotalMinor:number|null;terms:Record<string,unknown>};intelligence:null|{facts:Array<{key:string;status:string;value:string|null;amountMinor:number|null;itemStatus:string|null;provenanceIds:string[];updatedAt:string}>;askedTopics:string[];contradictions:Array<{contradictionId:string;key:string;previousValue:string;proposedValue:string;resolved:boolean;createdAt:string;resolvedAt:string|null}>;lastProviderTurnId:string|null;criticalGaps:string[];optionalGaps:string[];completionStatus:"NOT_QUOTABLE"|"NEEDS_ONE_CLARIFICATION"|"USABLE_BUT_INCOMPLETE"|"READY_TO_CLOSE";canClose:boolean;updatedAt:string}}>;
   offers:Array<{quoteId:string;providerId:string;callId:string;stage:"INITIAL"|"NEGOTIATED";lineItems:Array<{category:string;rawLabel:string;amountMinor:number|null;status:"INCLUDED"|"EXCLUDED"|"NOT_APPLICABLE"|"UNKNOWN";provenanceIds:string[]}>;totals:{statedAllInMinor:number|null;computedKnownMinor:number;taxStatus:"INCLUDED"|"EXCLUDED"|"UNKNOWN";reconciliation:"MATCH"|"TOTAL_MISMATCH"|"NOT_COMPARABLE_YET"};comparability:"COMPARABLE"|"CONDITIONALLY_COMPARABLE"|"NON_COMPARABLE";redFlags:Array<{detail:string}>}>;
   ranking:Array<{quoteId:string;eligible:boolean;ineligibleReason:string|null;score:number|null;componentScores:null|{price:number;completeness:number;scopeQuality:number;schedule:number;terms:number};visiblePenalties:string[]}>;
+  negotiationRound:{status:"PENDING"|"READY"|"IN_PROGRESS"|"COMPLETE"|"SKIPPED_NOT_ELIGIBLE";reason:string|null;providerAssessments:Array<{providerId:string;name:string;qualified:boolean;reason:string}>};
   redFlags:Array<{code:string;severity:string;detail:string}>;
   recommendation:null|{action:string;offerId:string|null;summary:string;reasons:string[];suggestedCounterMinor:number|null};
   policyDecisions:Array<{decisionId:string;decision:"ALLOW"|"DENY";allowedStatement:string|null;denyReason:string|null;at:string}>;

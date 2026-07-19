@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { formatMoney, quoteTotalMinor, type Quote, type RankingEntry } from "@/lib/mock-data";
-import { useRunsData } from "@/hooks/use-runs-data";
+import { api, useRunsData, type NegotiationData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
-import { Trophy, X, AlertTriangle } from "lucide-react";
+import { Trophy, X, AlertTriangle, PhoneCall, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/recommendation")({
   component: RecommendationPage,
@@ -42,17 +42,32 @@ interface EvidenceCtx {
 }
 
 function RecommendationPage() {
-  const { quotes: QUOTES, ranking: RANKING } = useRunsData();
+  const { quotes: QUOTES, ranking: RANKING, negotiation, refresh } = useRunsData();
   const [ev, setEv] = useState<EvidenceCtx | null>(null);
   const winner = RANKING[0];
+  const rec = negotiation?.recommendation ?? null;
   if (!winner || QUOTES.length === 0)
     return (
       <div className="px-6 py-10 md:px-10">
         <h1 className="text-3xl font-semibold">Recommendation</h1>
-        <div className="panel mt-6 p-8 text-sm text-muted-foreground">
-          No recommendation is available until at least one itemized offer has been recorded and
-          checked for comparability and red flags.
-        </div>
+        {rec && QUOTES.length > 0 ? (
+          <div className="panel mt-6 p-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              Agent recommendation · {rec.action}
+            </div>
+            <p className="mt-2 text-sm">{rec.summary}</p>
+            <ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground">
+              {rec.reasons.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="panel mt-6 p-8 text-sm text-muted-foreground">
+            No recommendation is available until at least one itemized offer has been recorded and
+            checked for comparability and red flags.
+          </div>
+        )}
       </div>
     );
   const winnerQuote = QUOTES.find((q) => q.quoteId === winner.quoteId) ?? QUOTES[0];
@@ -125,6 +140,10 @@ function RecommendationPage() {
         </div>
       </section>
 
+      {negotiation && (
+        <ReservationPanel negotiation={negotiation} quote={winnerQuote} refresh={refresh} />
+      )}
+
       {/* Full ranked list */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -138,6 +157,98 @@ function RecommendationPage() {
 
       {ev && <EvidenceDrawer ctx={ev} quotes={QUOTES} onClose={() => setEv(null)} />}
     </div>
+  );
+}
+
+function ReservationPanel({
+  negotiation,
+  quote,
+  refresh,
+}: {
+  negotiation: NegotiationData;
+  quote: Quote;
+  refresh: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const confirmationCall = negotiation.calls.filter((c) => c.phase === "CONFIRMATION").at(-1);
+  const accepted = negotiation.approvals.some((a) => a.action === "ACCEPT_OFFER");
+  const total = quoteTotalMinor(quote);
+  const place = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (!accepted)
+        await api(`/api/negotiations/${negotiation.negotiationId}/approvals`, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "ACCEPT_OFFER",
+            details: `Accepted ${quote.provider} at ${formatMoney(total)}`,
+          }),
+        });
+      await api(`/api/negotiations/${negotiation.negotiationId}/reservation-call`, {
+        method: "POST",
+        body: JSON.stringify({ providerId: quote.providerId }),
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Reservation call failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="panel mb-6 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-xl">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+            <PhoneCall className="h-3 w-3" /> Step 06 · Reservation call
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Approving here records an explicit <span className="mono">ACCEPT_OFFER</span> approval,
+            then the agent calls {quote.provider} back to confirm the{" "}
+            <span className="mono">{formatMoney(total)}</span> all-in total and hold an appointment.
+            It never pays or books bindingly — final written confirmation stays with you.
+          </p>
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <ShieldCheck className="h-3 w-3 text-primary" /> Demo scope: 3 sandbox calls this run —
+            a real run would canvass more shops before this step.
+          </p>
+        </div>
+        <div className="text-right">
+          {confirmationCall ? (
+            <div className="rounded-md border border-border bg-panel-2/40 px-4 py-3 text-sm">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                Reservation call
+              </div>
+              <div className="mt-1 font-semibold">
+                {confirmationCall.status === "COMPLETE"
+                  ? confirmationCall.outcome === "QUOTED"
+                    ? "Reservation confirmed"
+                    : `Ended: ${confirmationCall.outcome?.replaceAll("_", " ").toLowerCase() ?? "unknown"}`
+                  : confirmationCall.status === "FAILED"
+                    ? "Call failed"
+                    : "Call in progress…"}
+              </div>
+              {confirmationCall.reason && (
+                <div className="mt-1 max-w-[240px] text-[11px] text-muted-foreground">
+                  {confirmationCall.reason}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => void place()}
+              disabled={busy}
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? "Placing call…" : "Approve & place reservation call"}
+            </button>
+          )}
+          {error && <div className="mt-2 max-w-[260px] text-[11px] text-danger">{error}</div>}
+        </div>
+      </div>
+    </section>
   );
 }
 

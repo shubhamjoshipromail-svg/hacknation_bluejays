@@ -13,7 +13,7 @@ describe("three-provider sandbox coordinator",()=>{
   it("loads the existing number plus providers two and three",()=>{const providers=discoverSandboxProviders("28202",env);expect(providers.map(p=>p.providerId)).toEqual(["sandbox_provider","sandbox_provider_2","sandbox_provider_3"]);expect(new Set(providers.map(p=>p.phoneNumber)).size).toBe(3)});
   it("runs quote calls sequentially, then negotiates the highest eligible quote once",async()=>{
     const providers=discoverSandboxProviders("28202",env),n=createSandboxNegotiation(intake,providers),started:Array<{providerId:string;phase:string;callId:string}>=[];
-    const starter=async(negotiationId:string,providerId:string,phase:"QUOTE_COLLECTION"|"NEGOTIATION"="QUOTE_COLLECTION")=>{const callId=`call_${providerId}_${phase}`;started.push({providerId,phase,callId});return recordCall(negotiationId,{callId,providerId,conversationId:`conv_${callId}`,phase,status:"IN_PROGRESS",outcome:null,reason:null})};
+    const starter=async(negotiationId:string,providerId:string,phase:"QUOTE_COLLECTION"|"NEGOTIATION"|"CONFIRMATION"="QUOTE_COLLECTION")=>{const callId=`call_${providerId}_${phase}`;started.push({providerId,phase,callId});return recordCall(negotiationId,{callId,providerId,conversationId:`conv_${callId}`,phase,status:"IN_PROGRESS",outcome:null,reason:null})};
     recordCall(n.negotiationId,{callId:"call_one",providerId:providers[0].providerId,conversationId:"conv_one",status:"COMPLETE",outcome:"QUOTED",reason:"done"});
     attachOffer(n.negotiationId,offer(providers[0].providerId,80000,"call_one"));
     await advanceSandboxWorkflow(n.negotiationId,starter);expect(started.at(-1)).toMatchObject({providerId:"sandbox_provider_2",phase:"QUOTE_COLLECTION"});

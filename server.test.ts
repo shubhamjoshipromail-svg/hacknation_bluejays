@@ -302,7 +302,7 @@ describe("post-call persistence", () => {
     const startCall = async (
       negotiationId: string,
       providerId: string,
-      phase: "QUOTE_COLLECTION" | "NEGOTIATION" = "QUOTE_COLLECTION",
+      phase: "QUOTE_COLLECTION" | "NEGOTIATION" | "CONFIRMATION" = "QUOTE_COLLECTION",
     ) => {
       negotiationStarted = phase === "NEGOTIATION";
       return recordCall(negotiationId, {

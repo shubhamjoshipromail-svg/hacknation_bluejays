@@ -34,6 +34,15 @@ export function summarizeCallIntelligence(negotiation:Negotiation,call:Negotiati
 function updateDraft(call:NegotiationCall,fact:ObservationFactInput,provenanceId:string){
   call.draft??={lineItems:[],statedTotalMinor:null,terms:{}};
   if(fact.key==="TOTAL"&&fact.amountMinor!=null)call.draft.statedTotalMinor=fact.amountMinor;
+  // A "calibration price" that exceeds the current stated total is a revised all-in total
+  // ("with the camera it goes to $2,000"), not a separate fee stacked on top of it.
+  if(fact.key==="ADAS_PRICE"&&fact.amountMinor!=null&&call.draft.statedTotalMinor!=null&&fact.amountMinor>call.draft.statedTotalMinor){
+    const priorTotal=call.draft.statedTotalMinor,revisedTotal=fact.amountMinor;
+    call.draft.statedTotalMinor=revisedTotal;
+    const totalFact=call.intelligence?.facts.find(f=>f.key==="TOTAL");
+    if(totalFact){totalFact.amountMinor=revisedTotal;totalFact.value=`revised all-in total including calibration`;totalFact.provenanceIds=[...new Set([...totalFact.provenanceIds,provenanceId])];totalFact.updatedAt=new Date().toISOString()}
+    fact={...fact,amountMinor:revisedTotal-priorTotal,itemStatus:"INCLUDED",value:fact.value??`calibration derived as difference between provider's stated totals`};
+  }
   const category=feeMap[fact.key];
   if(category){const status=fact.itemStatus??(fact.status==="NOT_APPLICABLE"?"NOT_APPLICABLE":fact.status==="KNOWN"?"INCLUDED":"UNKNOWN"),prior=call.draft.lineItems.find(i=>i.category===category),item:QuoteLineItem={category,rawLabel:fact.value?.trim()||questions[fact.key],amountMinor:fact.amountMinor??prior?.amountMinor??null,status,scope:prior?.scope??{},provenanceIds:[...new Set([...(prior?.provenanceIds??[]),provenanceId])]};call.draft.lineItems=call.draft.lineItems.filter(i=>i.category!==category);call.draft.lineItems.push(item)}
   else if(fact.value!=null)call.draft.terms[fact.key.toLowerCase()]=fact.value;

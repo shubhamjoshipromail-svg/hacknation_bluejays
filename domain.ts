@@ -191,7 +191,7 @@ export type Provider = z.infer<typeof Provider>;
 
 export const NegotiationCall = z.object({
   callId:z.string(),providerId:z.string(),conversationId:z.string().nullable(),twilioCallSid:z.string().nullable().default(null),
-  phase:z.enum(["QUOTE_COLLECTION","NEGOTIATION"]).default("QUOTE_COLLECTION"),
+  phase:z.enum(["QUOTE_COLLECTION","NEGOTIATION","CONFIRMATION"]).default("QUOTE_COLLECTION"),
   status:z.enum(["QUEUED","IN_PROGRESS","COMPLETE","FAILED"]),
   outcome:z.enum(["QUOTED","CALLBACK_REQUIRED","DECLINED","DROPPED"]).nullable(),reason:z.string().nullable(),startedAt:IsoDate,endedAt:IsoDate.nullable(),
   transcript:z.array(z.object({turnId:z.string(),speaker:z.enum(["AGENT","SHOP"]),text:z.string(),timeSeconds:z.number().nonnegative().nullable()})),

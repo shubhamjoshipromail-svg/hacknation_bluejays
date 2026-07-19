@@ -98,10 +98,11 @@ function adapt(n: NegotiationData) {
           text: e.detail,
           t: new Date(e.at).toLocaleTimeString(),
         })),
-      redFlags: [...o.redFlags.map((f) => f.detail), ...n.redFlags.map((f) => f.detail)],
+      redFlags: [...new Set(o.redFlags.map((f) => f.detail))],
       originalOfferMinor: o.stage === "INITIAL" ? o.totals.statedAllInMinor : undefined,
       revisedOfferMinor: o.stage === "NEGOTIATED" ? o.totals.statedAllInMinor : undefined,
       canonicalTotalMinor: o.totals.statedAllInMinor,
+      computedKnownMinor: o.totals.computedKnownMinor,
       comparability: o.comparability,
       reconciliation: o.totals.reconciliation,
     }));

@@ -41,6 +41,7 @@ export interface Quote {
   originalOfferMinor?: number;
   revisedOfferMinor?: number;
   canonicalTotalMinor?: number | null;
+  computedKnownMinor?: number;
   comparability?: "COMPARABLE" | "CONDITIONALLY_COMPARABLE" | "NON_COMPARABLE";
   reconciliation?: "MATCH" | "TOTAL_MISMATCH" | "NOT_COMPARABLE_YET";
 }

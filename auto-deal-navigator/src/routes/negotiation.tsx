@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Ban, Check, ShieldCheck, TrendingDown } from "lucide-react";
+import { AlertTriangle, Ban, Check, ShieldCheck, TrendingDown, XCircle } from "lucide-react";
 import { formatMoney } from "@/lib/mock-data";
 import { useRunsData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
@@ -30,15 +30,52 @@ function NegotiationPage() {
     savings =
       (initial?.originalOfferMinor ?? 0) -
       (revised?.revisedOfferMinor ?? initial?.originalOfferMinor ?? 0);
+  const round = negotiation?.negotiationRound;
   if (!initial)
     return (
       <div className="px-6 py-10 md:px-10">
         <h1 className="text-3xl font-semibold">Negotiation trail</h1>
-        <div className="panel mt-6 p-8 text-sm text-muted-foreground">
-          {negotiation?.offers.length
-            ? "The quote round is saved, but no callback negotiation was eligible. At least two reconciled, comparable all-in quotes with different prices are required."
-            : "Negotiation begins only after the providers confirm usable quotes. No competitor claim is allowed without a separate comparable quote."}
-        </div>
+        {round?.status === "SKIPPED_NOT_ELIGIBLE" ? (
+          <div className="panel mt-6 p-6">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              No negotiation call this run — here is exactly why
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{round.reason}</p>
+            <ul className="mt-4 space-y-2">
+              {round.providerAssessments.map((p) => (
+                <li
+                  key={p.providerId}
+                  className="flex items-start gap-2 rounded-md border border-border bg-panel-2/40 p-3 text-sm"
+                >
+                  {p.qualified ? (
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  ) : (
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+                  )}
+                  <div>
+                    <span className="font-semibold">{p.name}</span>
+                    <span className="ml-2 text-muted-foreground">{p.reason}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 rounded-md border border-info/30 bg-info/5 p-3 text-[12px] leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-info">Demo scope:</span> this sandbox run only
+              calls the {negotiation?.providers.length ?? 3} shops configured in your environment.
+              In a real run the agent would keep calling additional shops until at least two
+              verified all-in quotes existed — so a negotiation round would be far more likely. The
+              honesty policy is doing its job here: with fewer than two verified quotes, the agent
+              is not allowed to imply a competing offer exists.
+            </p>
+          </div>
+        ) : (
+          <div className="panel mt-6 p-8 text-sm text-muted-foreground">
+            {negotiation?.offers.length
+              ? "The quote round is saved, but no callback negotiation was eligible. At least two reconciled, comparable all-in quotes with different prices are required."
+              : "Negotiation begins only after the providers confirm usable quotes. No competitor claim is allowed without a separate comparable quote."}
+          </div>
+        )}
       </div>
     );
   return (
