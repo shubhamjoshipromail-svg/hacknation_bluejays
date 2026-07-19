@@ -1,358 +1,416 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { AlertTriangle, CheckCircle2, Clock, PhoneCall, Search, ShieldCheck } from "lucide-react";
 import { api, useRunsData } from "@/hooks/use-runs-data";
+import type { SandboxIntakeRequest } from "../../../shared/contracts";
 
 export const Route = createFileRoute("/")({ component: Workspace });
-const money = (v: number | null | undefined) =>
-  v == null
-    ? "Not set"
+const money = (value: number | null | undefined) =>
+  value == null
+    ? "Awaiting quotes"
     : new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
         maximumFractionDigits: 0,
-      }).format(v / 100);
-function Workspace() {
-  const data = useRunsData();
-  const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [provider, setProvider] = useState("premium_chain");
-  async function create(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+      }).format(value / 100);
+const label = (value: string) =>
+  value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^./, (c) => c.toUpperCase());
+
+function IntakeForm({ onCreated }: { onCreated: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState<string | null>(null);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setBusy(true);
-    setFormError(null);
-    const f = new FormData(e.currentTarget);
+    setError(null);
+    const form = new FormData(event.currentTarget),
+      vin = String(form.get("vin") ?? "")
+        .trim()
+        .toUpperCase();
+    const payload: SandboxIntakeRequest = {
+      vehicle: {
+        year: Number(form.get("year")),
+        make: String(form.get("make") ?? "").trim(),
+        model: String(form.get("model") ?? "").trim(),
+        vin: vin || null,
+      },
+      damage: {
+        service: String(form.get("service")) as SandboxIntakeRequest["damage"]["service"],
+        type: String(form.get("damageType")) as SandboxIntakeRequest["damage"]["type"],
+        location: String(form.get("damageLocation")) as SandboxIntakeRequest["damage"]["location"],
+        drivable: form.get("drivable") === "on",
+      },
+      features: form.getAll("features") as SandboxIntakeRequest["features"],
+      postalCode: String(form.get("zip") ?? ""),
+      insuranceInvolved: form.get("insurance") === "on",
+      schedulePreference: String(form.get("schedule") ?? "").trim() || null,
+    };
     try {
-      await api("/api/negotiations/from-vin", {
-        method: "POST",
-        body: JSON.stringify({
-          negotiationType: "auto_glass",
-          objective: f.get("objective"),
-          currentSituation: f.get("situation"),
-          priorities: String(f.get("priorities"))
-            .split(",")
-            .map((x) => x.trim())
-            .filter(Boolean),
-          constraints: String(f.get("constraints"))
-            .split(",")
-            .map((x) => x.trim())
-            .filter(Boolean),
-          desiredOutcomeMinor: Number(f.get("target")) * 100 || null,
-          walkAwayMinor: Number(f.get("walkaway")) * 100 || null,
-          deadline: null,
-          supportingContext: "",
-          vin: String(f.get("vin")).trim().toUpperCase(),
-          postalCode: f.get("zip"),
-        }),
-      });
-      await data.refresh();
-      setShowCreate(false);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Could not create negotiation");
+      await api("/api/runs", { method: "POST", body: JSON.stringify(payload) });
+      await onCreated();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not start the sandbox workflow");
     } finally {
       setBusy(false);
     }
   }
-  async function approve(action: string) {
-    if (!data.negotiation) return;
-    setBusy(true);
-    try {
-      await api(`/api/negotiations/${data.negotiation.negotiationId}/approvals`, {
-        method: "POST",
-        body: JSON.stringify({ action, details: "Approved in negotiation workspace" }),
-      });
-      await data.refresh();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Approval failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function startCall() {
-    if (!data.negotiation) return;
-    if (!window.confirm("Call the phone number configured in PERSONA_TO_NUMBER now?")) return;
-    setBusy(true);
-    setFormError(null);
-    try {
-      await api(`/api/negotiations/${data.negotiation.negotiationId}/calls`, {
-        method: "POST",
-        body: JSON.stringify({ provider }),
-      });
-      await data.refresh();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Could not start the call");
-    } finally {
-      setBusy(false);
-    }
-  }
-  if (!data.negotiation || showCreate)
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        <p className="text-xs uppercase tracking-[.18em] text-primary">One guided workflow</p>
-        <h1 className="mt-3 text-3xl font-semibold">Prepare your phone negotiation</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Enter the VIN once. The backend decodes the vehicle, builds one reusable specification,
-          and keeps estimates separate from verified phone quotes.
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-8 md:px-10 md:py-10">
+      <header className="mb-8">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <span className="h-1 w-6 bg-primary" />
+          Sandbox · guided workflow
+        </div>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Find a windshield quote</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Tell us about the vehicle and damage once. Submission discovers the configured sandbox
+          provider and starts the call automatically.
         </p>
-        {data.negotiation && (
-          <button className="mt-4 text-sm text-primary" onClick={() => setShowCreate(false)}>
-            ← Return to current negotiation
-          </button>
-        )}
-        {data.connection === "error" && (
-          <div className="mt-5 rounded border border-destructive/50 p-3 text-sm">
-            Backend connection failed: {data.error}. Start it with <code>npm run server</code>.
+      </header>
+      <form onSubmit={submit} className="panel overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-border bg-panel-2/60 px-6 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 ring-1 ring-primary/40">
+            <Search className="h-4 w-4 text-primary" />
           </div>
-        )}
-        <form onSubmit={create} className="panel mt-7 grid gap-4 p-6 md:grid-cols-2">
-          <label className="md:col-span-2 text-sm">
-            Objective
+          <div>
+            <p className="text-sm font-semibold">Vehicle and damage</p>
+            <p className="text-xs text-muted-foreground">
+              Only quote-relevant details are required.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-5 p-6 md:grid-cols-2">
+          <label className="text-sm">
+            Year
             <input
               required
-              name="objective"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="Get a safe, itemized windshield replacement quote"
-            />
-          </label>
-          <label className="md:col-span-2 text-sm">
-            Current situation
-            <textarea
-              required
-              name="situation"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="I need cash-pay windshield replacement with all required calibration included."
-            />
-          </label>
-          <label className="text-sm">
-            Priorities, comma separated
-            <input
-              required
-              name="priorities"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="all-in price, safety, warranty"
-            />
-          </label>
-          <label className="text-sm">
-            Constraints
-            <input
-              name="constraints"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="no binding commitment, written confirmation"
-            />
-          </label>
-          <label className="text-sm">
-            Target ($)
-            <input
-              name="target"
+              name="year"
               type="number"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="650"
+              min="1980"
+              max="2100"
+              defaultValue="2021"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
             />
           </label>
           <label className="text-sm">
-            Walk-away ($)
-            <input
-              name="walkaway"
-              type="number"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="900"
-            />
-          </label>
-          <label className="md:col-span-2 text-sm">
-            Vehicle identification number (VIN)
+            Make
             <input
               required
+              name="make"
+              defaultValue="Volkswagen"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            />
+          </label>
+          <label className="text-sm">
+            Model
+            <input
+              required
+              name="model"
+              defaultValue="Tiguan"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            />
+          </label>
+          <label className="text-sm">
+            VIN <span className="text-muted-foreground">(optional)</span>
+            <input
               name="vin"
               minLength={17}
               maxLength={17}
               pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}"
-              className="mt-1 w-full rounded border bg-background p-2"
-              defaultValue="3VV2B7AX0MM103995"
+              placeholder="Only used if the provider asks"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5 mono"
             />
-            <span className="mt-1 block text-xs text-muted-foreground">
-              NHTSA vPIC will decode year, make, model, trim, body class, and available ADAS
-              evidence.
-            </span>
           </label>
           <label className="text-sm">
-            ZIP
+            Service needed
+            <select
+              name="service"
+              defaultValue="NOT_SURE"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            >
+              <option value="NOT_SURE">Not sure — ask the provider</option>
+              <option value="REPAIR">Repair</option>
+              <option value="REPLACEMENT">Replacement</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            Damage type
+            <select
+              name="damageType"
+              defaultValue="CRACK"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            >
+              <option value="CHIP">Chip</option>
+              <option value="CRACK">Crack</option>
+              <option value="SHATTERED">Shattered</option>
+              <option value="OTHER">Other</option>
+              <option value="NOT_SURE">Not sure</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            Damage location
+            <select
+              name="damageLocation"
+              defaultValue="CENTER"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            >
+              <option value="DRIVER_SIDE">Driver side</option>
+              <option value="PASSENGER_SIDE">Passenger side</option>
+              <option value="CENTER">Center</option>
+              <option value="EDGE">Edge</option>
+              <option value="MULTIPLE">Multiple areas</option>
+              <option value="NOT_SURE">Not sure</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            ZIP code
             <input
               required
-              pattern="[0-9]{5}"
               name="zip"
-              className="mt-1 w-full rounded border bg-background p-2"
+              inputMode="numeric"
+              pattern="[0-9]{5}"
               defaultValue="28202"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
             />
           </label>
-          {formError && <p className="md:col-span-2 text-sm text-destructive">{formError}</p>}
-          <button
-            disabled={busy}
-            className="md:col-span-2 rounded bg-primary px-4 py-2 font-medium text-primary-foreground"
-          >
-            {busy ? "Creating…" : "Create negotiation"}
-          </button>
-        </form>
-      </div>
-    );
-  const n = data.negotiation;
-  const confirmed = n.approvals.some((a) => a.action === "CONFIRM_SPEC"),
-    calls = n.approvals.some((a) => a.action === "START_CALLS");
-  return (
-    <div className="mx-auto max-w-6xl px-6 py-9">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[.18em] text-primary">
-            Status · {n.state.replaceAll("_", " ")}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold">{n.intake.objective}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{n.intake.currentSituation}</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="rounded border px-3 py-2 text-xs" onClick={() => setShowCreate(true)}>
-            New VIN negotiation
-          </button>
-          <span className="rounded border px-3 py-2 text-xs">
-            LIVE BACKEND · {n.negotiationId.slice(0, 12)}
-          </span>
-        </div>
-      </div>
-      <div className="mt-7 grid gap-5 lg:grid-cols-3">
-        <section className="panel p-5">
-          <h2 className="font-semibold">Intake & benchmark</h2>
-          <p className="mt-3 text-sm">
-            {n.intake.vehicle.year} {n.intake.vehicle.make} {n.intake.vehicle.model} · ZIP{" "}
-            {n.intake.postalCode}
-          </p>
-          <div className="mt-4 rounded bg-panel-2 p-3">
-            <p className="text-xs text-warning">
-              {n.benchmark.classification} · {n.benchmark.sourceLabel}
-            </p>
-            <p className="mt-2 text-lg">
-              {money(n.benchmark.lowMinor)}–{money(n.benchmark.highMinor)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Typical {money(n.benchmark.typicalMinor)}
-            </p>
-          </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Sources: {n.intake.sources.map((s) => s.kind).join(", ")}
-          </p>
-        </section>
-        <section className="panel p-5">
-          <h2 className="font-semibold">Call-ready strategy</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Target</dt>
-              <dd>{money(n.strategy.realisticTargetMinor)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Walk away</dt>
-              <dd>{money(n.strategy.walkAwayMinor)}</dd>
-            </div>
-          </dl>
-          <ul className="mt-4 list-disc space-y-2 pl-4 text-sm">
-            {n.strategy.questions.slice(0, 3).map((q) => (
-              <li key={q}>{q}</li>
-            ))}
-          </ul>
-        </section>
-        <section className="panel p-5">
-          <h2 className="font-semibold">Human control</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            The assistant can analyze and suggest. It cannot call, counter, accept, share sensitive
-            data, or confirm an agreement without the matching approval.
-          </p>
-          <button
-            disabled={busy || confirmed}
-            onClick={() => approve("CONFIRM_SPEC")}
-            className="mt-4 w-full rounded border px-3 py-2 text-sm disabled:opacity-50"
-          >
-            {confirmed ? "✓ Spec confirmed" : "Confirm specification"}
-          </button>
-          <button
-            disabled={busy || !confirmed || calls}
-            onClick={() => approve("START_CALLS")}
-            className="mt-3 w-full rounded bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50"
-          >
-            {calls ? "✓ Calls approved" : "Approve outbound calls"}
-          </button>
-          {calls && (
-            <div className="mt-4 rounded border border-primary/30 bg-primary/5 p-3">
-              <label className="text-xs text-muted-foreground">
-                Test call style
-                <select
-                  value={provider}
-                  onChange={(event) => setProvider(event.target.value)}
-                  className="mt-1 w-full rounded border bg-background p-2 text-sm text-foreground"
+          <fieldset className="md:col-span-2">
+            <legend className="text-sm">
+              Known windshield features{" "}
+              <span className="text-muted-foreground">(select what you know)</span>
+            </legend>
+            <div className="mt-2 grid gap-2 sm:grid-cols-4">
+              {[
+                ["FRONT_CAMERA", "Front camera"],
+                ["RAIN_SENSOR", "Rain sensor"],
+                ["HEATED_GLASS", "Heated glass"],
+                ["HUD", "Heads-up display"],
+              ].map(([value, text]) => (
+                <label
+                  key={value}
+                  className="flex items-center gap-2 rounded-md border border-border bg-panel-2/40 px-3 py-2 text-sm"
                 >
-                  <option value="premium_chain">Premium chain</option>
-                  <option value="independent_lowballer">Independent lowballer</option>
-                  <option value="mobile_operator">Mobile operator</option>
-                </select>
-              </label>
-              <button
-                disabled={busy || n.calls.some((call) => call.status === "IN_PROGRESS")}
-                onClick={startCall}
-                className="mt-3 w-full rounded bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {n.calls.some((call) => call.status === "IN_PROGRESS")
-                  ? "Call in progress…"
-                  : busy
-                    ? "Starting call…"
-                    : "Call my phone now"}
-              </button>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Uses the separate Intake agent and the phone number configured in the backend.
-              </p>
+                  <input type="checkbox" name="features" value={value} />
+                  {text}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="md:col-span-2 text-sm">
+            Scheduling preference <span className="text-muted-foreground">(optional)</span>
+            <input
+              name="schedule"
+              placeholder="Example: weekday afternoons; mobile service preferred"
+              className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2.5"
+            />
+          </label>
+          <div className="md:col-span-2 flex flex-wrap gap-5 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="drivable" defaultChecked />
+              Vehicle is drivable
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="insurance" />
+              Insurance may be involved
+            </label>
+          </div>
+          {error && (
+            <div className="md:col-span-2 rounded-md border border-destructive/50 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
             </div>
           )}
-          {formError && <p className="mt-3 text-xs text-destructive">{formError}</p>}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-panel-2/40 px-6 py-4">
+          <p className="max-w-xl text-xs text-muted-foreground">
+            Submitting authorizes quote and negotiation calls only. The agent cannot book, purchase,
+            or accept an offer.
+          </p>
+          <button
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            <PhoneCall className="h-4 w-4" />
+            {busy ? "Starting workflow…" : "Find and call provider"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Workspace() {
+  const data = useRunsData(),
+    [showForm, setShowForm] = useState(false);
+  if (!data.negotiation || showForm)
+    return (
+      <IntakeForm
+        onCreated={async () => {
+          await data.refresh();
+          setShowForm(false);
+        }}
+      />
+    );
+  const n = data.negotiation,
+    provider = n.providers[0],
+    call = n.calls.at(-1),
+    offer = n.offers.at(-1);
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-8 md:px-10 md:py-10">
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <span className="h-1 w-6 bg-primary" />
+            Sandbox · {label(n.state)}
+          </div>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+            {n.intake.vehicle.year} {n.intake.vehicle.make} {n.intake.vehicle.model}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {label(n.intake.damage.service)} · {label(n.intake.damage.type)} · ZIP{" "}
+            {n.intake.postalCode}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="rounded-md border border-border bg-panel px-3 py-2 text-xs hover:text-primary"
+        >
+          Start a new search
+        </button>
+      </header>
+      <div className="grid gap-5 lg:grid-cols-3">
+        <section className="panel p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Provider discovery</h2>
+            {provider?.verified && <CheckCircle2 className="h-4 w-4 text-success" />}
+          </div>
+          {provider ? (
+            <>
+              <p className="mt-4 text-sm font-semibold">{provider.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{provider.locationLabel}</p>
+              <span className="mt-4 inline-flex rounded border border-warning/40 bg-warning/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning">
+                Sandbox configured number
+              </span>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">Discovering the sandbox provider…</p>
+          )}
+        </section>
+        <section className="panel p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Provider call</h2>
+            {call?.status === "IN_PROGRESS" ? (
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-success" />
+            ) : (
+              <PhoneCall className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          {call ? (
+            <>
+              <p className="mt-4 text-lg font-semibold">{label(call.status)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {call.phase === "QUOTE_COLLECTION"
+                  ? "Gathering an itemized quote"
+                  : "Negotiating the verified quote"}
+              </p>
+              {call.reason && (
+                <p className="mt-3 rounded border border-warning/30 bg-warning/5 p-2 text-xs">
+                  {call.reason}
+                </p>
+              )}
+              <Link to="/calls" className="mt-4 inline-block text-xs font-semibold text-primary">
+                View call and transcript →
+              </Link>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">The call will start automatically.</p>
+          )}
+        </section>
+        <section className="panel p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Quote benchmark</h2>
+            <ShieldCheck className="h-4 w-4 text-primary" />
+          </div>
+          <p className="mt-4 text-xs uppercase tracking-wider text-warning">
+            {n.benchmark.classification}
+          </p>
+          <p className="mt-2 text-xl">
+            {money(n.benchmark.lowMinor)}–{money(n.benchmark.highMinor)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Typical {money(n.benchmark.typicalMinor)} · estimates remain labeled until comparable
+            calls arrive.
+          </p>
         </section>
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <section className="panel p-5">
-          <h2 className="font-semibold">Offers & risks</h2>
-          {n.offers.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              No offer has been recorded. Approved calls will add transcript-backed itemized offers
-              here.
-            </p>
-          ) : (
-            n.offers.map((o) => (
-              <div key={o.quoteId} className="mt-3 rounded border p-3">
-                <b>{o.providerId}</b> · {money(o.totals.statedAllInMinor)}
+          <h2 className="font-semibold">Quote and validation</h2>
+          {offer ? (
+            <div className="mt-4 rounded-md border border-border bg-panel-2/40 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">{provider?.name ?? offer.providerId}</span>
+                <span className="text-lg font-semibold text-primary">
+                  {money(offer.totals.statedAllInMinor)}
+                </span>
               </div>
-            ))
+              <div className="mt-3 space-y-2">
+                {offer.lineItems.map((item) => (
+                  <div
+                    key={`${item.category}-${item.rawLabel}`}
+                    className="flex justify-between text-xs"
+                  >
+                    <span>
+                      {label(item.category)} · {item.status}
+                    </span>
+                    <span>{money(item.amountMinor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-3 rounded-md border border-border bg-panel-2/40 p-4 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              Waiting for the provider to confirm an itemized quote.
+            </div>
           )}
-          {n.redFlags.map((r) => (
+          {n.redFlags.map((flag) => (
             <div
-              key={r.code + r.detail}
-              className="mt-3 rounded border border-warning/40 p-3 text-sm"
+              key={`${flag.code}-${flag.detail}`}
+              className="mt-3 flex gap-2 rounded border border-warning/40 bg-warning/5 p-3 text-xs"
             >
-              <b>
-                {r.severity}: {r.code}
-              </b>
-              <p>{r.detail}</p>
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+              <div>
+                <b>{flag.code}</b>
+                <p className="mt-1 text-muted-foreground">{flag.detail}</p>
+              </div>
             </div>
           ))}
         </section>
         <section className="panel p-5">
-          <h2 className="font-semibold">Recommendation & follow-up</h2>
+          <h2 className="font-semibold">Recommendation</h2>
           {n.recommendation ? (
             <>
-              <p className="mt-3 text-xl text-primary">{n.recommendation.action}</p>
+              <p className="mt-4 text-xl font-semibold text-primary">
+                {label(n.recommendation.action)}
+              </p>
               <p className="mt-2 text-sm">{n.recommendation.summary}</p>
-              <ul className="mt-3 list-disc pl-4 text-xs text-muted-foreground">
-                {n.recommendation.reasons.map((r) => (
-                  <li key={r}>{r}</li>
+              <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+                {n.recommendation.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">
-              A recommendation appears after a reconciled offer is analyzed.
+            <p className="mt-4 text-sm text-muted-foreground">
+              A transparent recommendation appears after the transcript and quote pass validation.
             </p>
           )}
+          <div className="mt-5 rounded-md border border-success/30 bg-success/5 p-3 text-xs text-muted-foreground">
+            <b className="text-success">Human approval boundary:</b> no booking, purchase, or
+            binding commitment is authorized.
+          </div>
         </section>
       </div>
     </div>

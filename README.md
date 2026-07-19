@@ -1,10 +1,10 @@
 # The Negotiator
 
-The Negotiator is a human-controlled phone negotiation assistant for cash-pay auto-glass replacement. It creates one structured negotiation, labels benchmark quality, prepares a concise strategy, gathers itemized voice quotes, detects risks, allows only verified competitor leverage, recommends a next action, and remembers follow-ups until the negotiation closes.
+The Negotiator is a phone-based auto-glass quote and negotiation assistant. The current product path is an intentionally safe sandbox: a user submits a minimal intake, the backend returns one configured sandbox provider, starts an ElevenLabs outbound call automatically, stores the transcript and itemized quote, and updates the frontend from the same canonical run.
 
 The canonical product path is deliberately small:
 
-`intake -> confirm spec -> approve calls -> gather offers -> analyze -> recommend -> follow up or close`
+`submit intake -> mock provider discovery -> automatic quote call -> transcript + quote -> recommendation`
 
 The AI never accepts, rejects, counters, shares sensitive information, books, pays, or confirms an agreement without an explicit user approval.
 
@@ -14,7 +14,9 @@ The AI never accepts, rejects, counters, shares sensitive information, books, pa
 - One workflow/state service: `negotiation-service.ts`
 - One atomic JSON store: `store.ts` -> `.data/current-run.json`
 - Deterministic policy and comparison rules: `policy.ts`
-- One ElevenLabs/Twilio adapter: `scripts/`
+- One direct ElevenLabs/Twilio call adapter: `elevenlabs-call-service.ts`
+- One sandbox discovery adapter: `provider-search-service.ts`
+- One automatic orchestrator: `workflow-service.ts`
 - One React/TanStack frontend: `auto-deal-navigator/`
 
 The legacy text loop and three YAML personas remain as a labeled golden-path evaluation fixture. They are not the source of product state.
@@ -41,19 +43,31 @@ The frontend uses `http://localhost:3000` by default. Set `VITE_API_URL` when th
 
 ## Environment variables
 
-Core local workflow requires none. Voice calls require:
+Voice calls require:
 
 - `ELEVENLABS_API_KEY`
 - `ELEVENLABS_PHONE_NUMBER_ID`
 - `TOOL_SHARED_SECRET`
 - `PUBLIC_BASE_URL`
 - `ELEVENLABS_WEBHOOK_SECRET`
-- `PERSONA_TO_NUMBER`
-- `PERSONA_PHONE_NUMBER_ID` for agent-to-agent mode (optional for human role-play)
+- `CALL_MODE=SANDBOX`
+- `SANDBOX_PROVIDER_NAME`
+- `SANDBOX_PROVIDER_NUMBER`
+
+For compatibility, an existing `PERSONA_TO_NUMBER` is used only when `SANDBOX_PROVIDER_NUMBER` is absent. In either case it is treated explicitly as the sandbox provider, never as a customer fallback. Google Places and real provider discovery are not used.
 
 `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are used while configuring telephony. `OPENAI_API_KEY` and `OPENAI_MODEL` are optional and only used by the legacy report-prose fixture.
 
-## Canonical API
+## Automatic sandbox API
+
+- `POST /api/runs` - accepts minimal vehicle/service intake, discovers the configured sandbox provider, persists a run, and starts the quote call asynchronously
+- `GET /api/negotiations/current` - shared frontend/backend run contract
+- `POST /tools/:toolName` - authenticated ElevenLabs tools that write call-specific evidence, quote fields, terms, and outcomes
+- `POST /webhooks/elevenlabs` - authenticated final transcript ingestion, quote reconciliation, recommendation, and eligible negotiation kickoff
+
+The VIN is optional in sandbox intake. If supplied, it is passed as a private specification field and the voice agent says it only when the provider explicitly asks.
+
+The lower-level endpoints below remain for validation, tests, and future provider discovery:
 
 - `GET /api/vin/:vin` - official NHTSA vPIC decode with normalized ADAS evidence
 - `POST /api/negotiations/from-vin` - canonical VIN-first intake; year/make/model are not manually entered
@@ -66,20 +80,14 @@ Core local workflow requires none. Voice calls require:
 - `POST /api/negotiations/:id/close` - terminal state; acceptance requires `ACCEPT_OFFER`
 - `GET /api/negotiations/current` - frontend contract
 
-## Voice demo
+## Local sandbox demo
 
-1. Create a negotiation in the UI.
-2. Confirm the specification.
-3. Approve outbound calls.
-4. Start the public HTTPS tunnel and set `PUBLIC_BASE_URL`.
-5. Run `npm run provision` once.
-6. Use the negotiation ID shown in the UI:
+1. Start a public HTTPS tunnel to port 3000 and set `PUBLIC_BASE_URL`.
+2. Run `npm run provision` after changing prompts, tools, or the public URL.
+3. Start the backend with `npm run server` and the frontend with `npm run dev` inside `auto-deal-navigator`.
+4. Open `http://localhost:8080`, enter the minimal intake, and choose **Find and call sandbox provider**.
 
-```bash
-npm run call:all -- --negotiation neg_... --to +15555550123
-```
-
-The runner refuses to call without `START_CALLS` approval, captures three styles, negotiates once using verified leverage, attaches offers to the canonical negotiation, and creates the recommendation.
+The UI should immediately show the discovered sandbox provider and queued/in-progress state. Tool calls save evidence while the call is live. The signed final webhook replaces partial turns with the complete transcript, materializes the quote, reconciles the total, and produces a recommendation. A negotiation callback starts only for a comparable reconciled quote whose deterministic recommendation is `COUNTER`.
 
 ## Tests
 

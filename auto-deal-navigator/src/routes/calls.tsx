@@ -166,7 +166,7 @@ function LiveCallsPage() {
               <span className="text-info">●</span> {active} on call
             </span>
             <span>
-              <span className="text-muted-foreground">●</span> {Math.max(0, 3 - CALLS.length)}{" "}
+              <span className="text-muted-foreground">●</span> {Math.max(0, 1 - CALLS.length)}{" "}
               remaining
             </span>
           </div>

@@ -1,83 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { JobSpec, PolicyDecision, Quote, RankingEntry } from "@/lib/mock-data";
+import type { RunView } from "../../../shared/contracts";
 
-export interface NegotiationData {
-  negotiationId: string;
-  state: string;
-  intake: {
-    objective: string;
-    currentSituation: string;
-    priorities: string[];
-    constraints: string[];
-    desiredOutcomeMinor: number | null;
-    walkAwayMinor: number | null;
-    vehicle: {
-      year: number;
-      make: string;
-      model: string;
-      vin: string | null;
-      frontCamera: boolean;
-    };
-    postalCode: string;
-    sources: Array<{ kind: string; label: string }>;
-  };
-  benchmark: {
-    lowMinor: number;
-    typicalMinor: number;
-    highMinor: number;
-    classification: string;
-    sourceLabel: string;
-    notes: string[];
-  };
-  strategy: {
-    realisticTargetMinor: number;
-    openingPositionMinor: number;
-    walkAwayMinor: number;
-    keyArguments: string[];
-    questions: string[];
-    requestConcessions: string[];
-    risksToAvoid: string[];
-  };
-  approvals: Array<{ action: string }>;
-  calls: Array<{
-    callId: string;
-    providerId: string;
-    conversationId: string;
-    status: "IN_PROGRESS" | "COMPLETE" | "FAILED";
-    outcome: "QUOTED" | "CALLBACK_REQUIRED" | "DECLINED" | "DROPPED" | null;
-    reason: string | null;
-    transcript: Array<{
-      turnId: string;
-      speaker: "AGENT" | "SHOP";
-      text: string;
-      timeSeconds: number | null;
-    }>;
-  }>;
-  offers: Array<{
-    quoteId: string;
-    providerId: string;
-    stage: "INITIAL" | "NEGOTIATED";
-    lineItems: Array<{
-      category: string;
-      rawLabel: string;
-      amountMinor: number | null;
-      status: "INCLUDED" | "EXCLUDED" | "NOT_APPLICABLE" | "UNKNOWN";
-      provenanceIds: string[];
-    }>;
-    totals: { statedAllInMinor: number | null };
-    redFlags: Array<{ detail: string }>;
-  }>;
-  redFlags: Array<{ code: string; severity: string; detail: string }>;
-  recommendation: null | {
-    action: string;
-    offerId: string | null;
-    summary: string;
-    reasons: string[];
-    suggestedCounterMinor: number | null;
-  };
-  followUps: Array<{ followUpId: string; dueAt: string; note: string; status: string }>;
-  events: Array<{ eventId: string; type: string; detail: string; at: string }>;
-}
+export type NegotiationData = RunView;
 export interface RunsData {
   jobSpec: JobSpec;
   quotes: Quote[];
@@ -102,6 +27,17 @@ const blankSpec: JobSpec = {
   location: { zip: "-----", source: "VOICE" },
   adas: { confirmed: false, source: "VOICE", note: "Not confirmed" },
   schedule: { windows: [], source: "VOICE" },
+};
+const CATEGORY_LABELS: Record<string, string> = {
+  BASE_GLASS_AND_INSTALL: "Glass & install",
+  ADAS_CALIBRATION: "ADAS calibration",
+  MOBILE_SERVICE: "Mobile service",
+  MOLDINGS_CLIPS_SENSOR_KIT: "Moldings / clips",
+  DISPOSAL_ENVIRONMENTAL: "Disposal",
+  SHOP_SUPPLIES: "Shop supplies",
+  TAX: "Tax",
+  DISCOUNT: "Discount",
+  OTHER: "Other",
 };
 function adapt(n: NegotiationData) {
   const masked = n.intake.vehicle.vin
@@ -131,36 +67,42 @@ function adapt(n: NegotiationData) {
     },
     schedule: { windows: [], source: "VOICE" },
   };
-  const quotes: Quote[] = n.offers.map((o) => ({
-    quoteId: o.quoteId,
-    provider: o.providerId,
-    location: "Phone quote",
-    callStatus: "COMPLETE",
-    jobSpecHash: n.negotiationId,
-    lineItems: o.lineItems.map((item) => ({
-      ...item,
-      status: item.status === "NOT_APPLICABLE" ? "EXCLUDED" : item.status,
-    })),
-    transcriptTurns: [],
-    events: n.events
-      .filter((e) => e.detail.includes(o.providerId))
-      .map((e) => ({
-        id: e.eventId,
-        kind: "LOG",
-        text: e.detail,
-        t: new Date(e.at).toLocaleTimeString(),
+  const quotes: Quote[] = [...n.offers]
+    .sort((a, b) => Number(b.stage === "NEGOTIATED") - Number(a.stage === "NEGOTIATED"))
+    .map((o) => ({
+      quoteId: o.quoteId,
+      provider: n.providers.find((p) => p.providerId === o.providerId)?.name ?? o.providerId,
+      location: "Phone quote",
+      callStatus: "COMPLETE",
+      jobSpecHash: n.negotiationId,
+      lineItems: o.lineItems.map((item) => ({
+        ...item,
+        category: CATEGORY_LABELS[item.category] ?? item.category,
+        status: item.status === "NOT_APPLICABLE" ? "EXCLUDED" : item.status,
       })),
-    redFlags: o.redFlags.map((f) => f.detail),
-    originalOfferMinor: o.stage === "INITIAL" ? o.totals.statedAllInMinor : undefined,
-    revisedOfferMinor: o.stage === "NEGOTIATED" ? o.totals.statedAllInMinor : undefined,
-  }));
+      transcriptTurns: [],
+      events: n.events
+        .filter((e) => e.detail.includes(o.providerId))
+        .map((e) => ({
+          id: e.eventId,
+          kind: "LOG",
+          text: e.detail,
+          t: new Date(e.at).toLocaleTimeString(),
+        })),
+      redFlags: [...o.redFlags.map((f) => f.detail), ...n.redFlags.map((f) => f.detail)],
+      originalOfferMinor: o.stage === "INITIAL" ? o.totals.statedAllInMinor : undefined,
+      revisedOfferMinor: o.stage === "NEGOTIATED" ? o.totals.statedAllInMinor : undefined,
+    }));
   const calls: Quote[] = n.calls.map((call) => ({
     quoteId: call.callId,
-    provider: call.providerId.replaceAll("_", " "),
+    provider:
+      n.providers.find((provider) => provider.providerId === call.providerId)?.name ??
+      call.providerId.replaceAll("_", " "),
     location: call.outcome
       ? `${call.outcome.replaceAll("_", " ")}${call.reason ? ` · ${call.reason}` : ""}`
       : "Call in progress",
-    callStatus: call.status === "IN_PROGRESS" ? "ON_CALL" : "COMPLETE",
+    callStatus:
+      call.status === "QUEUED" ? "QUEUED" : call.status === "IN_PROGRESS" ? "ON_CALL" : "COMPLETE",
     jobSpecHash: n.negotiationId,
     lineItems: [],
     transcriptTurns: call.transcript.map((turn) => ({
@@ -180,16 +122,32 @@ function adapt(n: NegotiationData) {
       })),
     redFlags: [],
   }));
-  const ranking: RankingEntry[] = quotes.map((q, i) => ({
-    quoteId: q.quoteId,
-    provider: q.provider,
-    score: Math.max(0, 100 - i * 10),
-    componentScores: { price: 0, completeness: 0, trust: 0, logistics: 0 },
-    visiblePenalties: q.redFlags,
-    explanation:
-      n.recommendation?.offerId === q.quoteId ? n.recommendation.summary : "Awaiting comparison",
+  const ranking: RankingEntry[] = quotes.map((q) => {
+    const completeness = Math.round(
+      (q.lineItems.filter((item) => item.status !== "UNKNOWN").length /
+        Math.max(q.lineItems.length, 1)) *
+        100,
+    );
+    const trust = q.redFlags.length ? 45 : 100;
+    const logistics = q.lineItems.some((item) => item.category === "Mobile service") ? 75 : 50;
+    const price = 100;
+    return {
+      quoteId: q.quoteId,
+      provider: q.provider,
+      score: Math.round((price + completeness + trust + logistics) / 4),
+      componentScores: { price, completeness, trust, logistics },
+      visiblePenalties: q.redFlags,
+      explanation: n.recommendation?.summary ?? "Awaiting validated recommendation",
+    };
+  });
+  const policyDecisions: PolicyDecision[] = n.policyDecisions.map((decision) => ({
+    id: decision.decisionId,
+    decision: decision.decision,
+    allowedStatement: decision.allowedStatement ?? undefined,
+    denyReason: decision.denyReason ?? undefined,
+    timestamp: new Date(decision.at).toLocaleTimeString(),
   }));
-  return { jobSpec, quotes, calls, ranking };
+  return { jobSpec, quotes, calls, ranking, policyDecisions };
 }
 export async function api(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -224,6 +182,6 @@ export function useRunsData(): RunsData {
   }, [refresh]);
   const mapped = negotiation
     ? adapt(negotiation)
-    : { jobSpec: blankSpec, quotes: [], calls: [], ranking: [] };
-  return { ...mapped, policyDecisions: [], negotiation, connection, error, refresh };
+    : { jobSpec: blankSpec, quotes: [], calls: [], ranking: [], policyDecisions: [] };
+  return { ...mapped, negotiation, connection, error, refresh };
 }
