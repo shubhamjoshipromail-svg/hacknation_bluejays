@@ -1,13 +1,12 @@
 import { AlertTriangle } from "lucide-react";
-import { JOB_SPEC } from "@/lib/mock-data";
 
 export function DemoBanner() {
   return (
-    <div className="flex items-center justify-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-1.5 text-[11px] font-medium tracking-wide text-warning">
+    <div className="flex min-h-9 flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-primary/15 bg-[#fff5f7] px-4 py-2 text-center text-[10px] font-semibold tracking-wide text-primary sm:text-[11px]">
       <AlertTriangle className="h-3 w-3" />
-      <span className="uppercase">Simulated provider market — demo mode</span>
-      <span className="mx-2 h-3 w-px bg-warning/30" />
-      <span className="mono text-warning/80">run started 07/19 · spec {JOB_SPEC.hash}</span>
+      <span className="uppercase">Sandbox mode · configured number is the provider</span>
+      <span className="mx-2 hidden h-3 w-px bg-primary/25 sm:block" />
+      <span className="mono text-primary/75">No booking or commitment is authorized</span>
     </div>
   );
 }
