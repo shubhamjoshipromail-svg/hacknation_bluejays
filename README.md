@@ -17,6 +17,8 @@ The AI never accepts, rejects, counters, shares sensitive information, books, pa
 - One direct ElevenLabs/Twilio call adapter: `elevenlabs-call-service.ts`
 - One sandbox discovery adapter: `provider-search-service.ts`
 - One automatic orchestrator: `workflow-service.ts`
+- One adaptive call-state engine: `call-intelligence.ts`
+- One source-backed benchmark bridge: `benchmark-service.ts` -> `benchmarking/`
 - One React/TanStack frontend: `auto-deal-navigator/`
 
 The legacy text loop and three YAML personas remain as a labeled golden-path evaluation fixture. They are not the source of product state.
@@ -88,6 +90,12 @@ The lower-level endpoints below remain for validation, tests, and future provide
 4. Open `http://localhost:8080`, enter the minimal intake, and choose **Find and call sandbox provider**.
 
 The UI should immediately show the discovered sandbox provider and queued/in-progress state. Tool calls save evidence while the call is live. The signed final webhook replaces partial turns with the complete transcript, materializes the quote, reconciles the total, and produces a recommendation. A negotiation callback starts only for a comparable reconciled quote whose deterministic recommendation is `COUNTER`.
+
+## Adaptive conversation brain
+
+The intake agent does not follow a mandatory question order. It starts with `get_call_state`, records every explicit fact from each provider answer with one `record_provider_answer` call, and chooses its next move from critical gaps, optional gaps, contradictions, and completion status returned by the backend. One answer can resolve multiple facts; repeated facts are idempotent; conflicting money requires an explicit correction before it replaces the prior value. Questions become conditional on intake and call state—for example, ADAS details are not required when the vehicle is known not to have a front camera.
+
+The separate benchmarking vertical runs before call dispatch with real provider discovery disabled. Its bundled source-derived evidence supplies a labeled directional range, warnings, and call guidance. Only two or more reconciled same-scope provider quotes can promote that range to `VERIFIED`; published benchmark ranges are never competitor leverage. Run the vertical independently with `npm run benchmark -- benchmarking/examples/request.json --offline`.
 
 ## Tests
 

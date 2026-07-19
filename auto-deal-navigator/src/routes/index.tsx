@@ -314,6 +314,22 @@ function Workspace() {
                   ? "Gathering an itemized quote"
                   : "Negotiating the verified quote"}
               </p>
+              {call.intelligence && (
+                <div className="mt-3 rounded border border-primary/25 bg-primary/5 p-2 text-xs">
+                  <p className="font-semibold">
+                    Conversation brain · {label(call.intelligence.completionStatus)}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    {call.intelligence.facts.length} facts captured
+                    {call.intelligence.criticalGaps.length
+                      ? ` · next gaps: ${call.intelligence.criticalGaps.slice(0, 3).map(label).join(", ")}`
+                      : " · critical quote facts resolved"}
+                  </p>
+                  {call.intelligence.contradictions.some((item) => !item.resolved) && (
+                    <p className="mt-1 text-warning">A conflicting answer needs confirmation.</p>
+                  )}
+                </div>
+              )}
               {call.reason && (
                 <p className="mt-3 rounded border border-warning/30 bg-warning/5 p-2 text-xs">
                   {call.reason}

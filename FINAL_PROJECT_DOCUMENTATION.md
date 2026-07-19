@@ -21,11 +21,12 @@ The frontend polls `GET /api/negotiations/current` and renders the canonical bac
 1. `POST /api/runs` validates `SandboxIntake`.
 2. `provider-search-service.ts` returns exactly one configured sandbox provider.
 3. `workflow-service.ts` creates the canonical negotiation, records automatic sandbox approvals, and queues the quote call.
-4. `elevenlabs-call-service.ts` starts the correct ElevenLabs agent directly and records both the ElevenLabs conversation ID and Twilio call SID.
-5. ElevenLabs webhook tools call `POST /tools/:toolName`. Every mutation is resolved to the exact call, preferably by `call_id` and safely by the system conversation ID when necessary.
-6. Tool results accumulate a call-specific quote draft and transcript-backed provenance.
-7. The signed post-call webhook stores the final two-speaker transcript, closes the call, materializes and reconciles the quote, and creates the deterministic recommendation.
-8. If the initial quote is comparable and the recommendation is `COUNTER`, the server starts a separate negotiation callback with the negotiation agent. Otherwise it stops at `CLARIFY`, `ACCEPT`, or `WALK_AWAY` as appropriate.
+4. `benchmark-service.ts` runs the separate benchmarking handoff with provider discovery disabled, stores its evidence/guidance, and updates the labeled estimated range.
+5. `elevenlabs-call-service.ts` starts the correct ElevenLabs agent directly and records both the ElevenLabs conversation ID and Twilio call SID.
+6. The intake agent reads `get_call_state`, then sends each substantive answer once through `record_provider_answer`. Every mutation is resolved to the exact call, preferably by `call_id` and safely by the system conversation ID when necessary.
+7. `call-intelligence.ts` upserts all explicit facts in the answer, detects contradictions, calculates conditional gaps, and returns the next useful conversational goals and completion status.
+8. The signed post-call webhook stores the final two-speaker transcript, closes the call, materializes and reconciles the quote, and creates the deterministic recommendation.
+9. If the initial quote is comparable and the recommendation is `COUNTER`, the server starts a separate negotiation callback with the negotiation agent. Otherwise it stops at `CLARIFY`, `ACCEPT`, or `WALK_AWAY` as appropriate.
 
 ## VIN and specifications
 
@@ -38,6 +39,10 @@ The lower-level VIN route still supports an NHTSA vPIC decode for future VIN-fir
 The sandbox benchmark is labeled estimated. No live market-price or provider-discovery claim is made. Provider quotes become verified evidence only when backed by transcript provenance and a reconciled itemization.
 
 Negotiation leverage is deny-by-default. `request_leverage` can release only an exact statement created from an eligible verified quote, never a fabricated competitor claim and never the current provider's own quote. With only one sandbox provider, competitor price-match leverage will normally be denied; the negotiation agent may still ask truthfully whether there is price flexibility or whether a documented fee can be reduced. Binding acceptance, booking, and payment are outside the agent's authority.
+
+## Adaptive call intelligence
+
+The voice model owns conversational phrasing and next-question choice; the backend owns memory, relevance, arithmetic and safety. Facts are persisted with `KNOWN`, `NOT_APPLICABLE`, `REFUSED`, or `AMBIGUOUS` state. A provider can answer several future questions in one interruption and all explicit facts are recorded together. Duplicate paraphrases add evidence without duplicating quote rows. Conflicting confirmed values block closing until the provider explicitly resolves the correction. The backend returns `NOT_QUOTABLE`, `NEEDS_ONE_CLARIFICATION`, `USABLE_BUT_INCOMPLETE`, or `READY_TO_CLOSE`, so optional contact details no longer force a scripted interview.
 
 ## Persistence
 

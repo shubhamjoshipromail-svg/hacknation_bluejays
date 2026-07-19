@@ -153,9 +153,11 @@ describe("sandbox workflow API", () => {
     expect(current).toMatchObject({
       mode: "SANDBOX",
       state: "call_in_progress",
+      benchmark: { classification: "ESTIMATED", sourceLabel: "Source-backed published auto-glass range" },
       providers: [{ providerId: "sandbox_provider", source: "SANDBOX_CONFIG" }],
       calls: [{ callId: "call_auto", status: "IN_PROGRESS" }],
     });
+    expect(current.benchmarkContext?.evidence.length).toBeGreaterThan(0);
     expect(started).toBe(true);
   });
   it("refuses to run without an explicit sandbox provider number", async () => {
