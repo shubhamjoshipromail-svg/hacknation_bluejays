@@ -29,6 +29,7 @@ export interface TranscriptTurn {
 
 export interface Quote {
   quoteId: string;
+  providerId?: string;
   provider: string;
   location: string;
   callStatus: CallStatus;
@@ -39,6 +40,9 @@ export interface Quote {
   redFlags: string[];
   originalOfferMinor?: number;
   revisedOfferMinor?: number;
+  canonicalTotalMinor?: number | null;
+  comparability?: "COMPARABLE" | "CONDITIONALLY_COMPARABLE" | "NON_COMPARABLE";
+  reconciliation?: "MATCH" | "TOTAL_MISMATCH" | "NOT_COMPARABLE_YET";
 }
 
 export interface PolicyDecision {
@@ -446,6 +450,15 @@ export function formatMoney(minor: number | null | undefined): string {
 export function totalMinor(items: LineItem[]): number | null {
   // If ANY UNKNOWN, total is not certain — return sum of known but mark caller
   return items.reduce<number>((s, li) => s + (li.amountMinor ?? 0), 0);
+}
+
+export function quoteTotalMinor(quote: Quote): number | null {
+  return (
+    quote.revisedOfferMinor ??
+    quote.originalOfferMinor ??
+    quote.canonicalTotalMinor ??
+    totalMinor(quote.lineItems)
+  );
 }
 
 export function hasUnknown(items: LineItem[]): boolean {
