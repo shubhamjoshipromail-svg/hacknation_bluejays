@@ -134,4 +134,47 @@ We will integrate continuously. We will not wait until the end to combine everyo
 - Technology stack: Not selected
 - Team roles: Not assigned
 
+## Negotiator Phase 2 voice transport
+
+The text and voice transports share `store.ts` and `tools.ts`. `domain.ts`, `policy.ts`,
+and the negotiation playbook remain transport-independent. Runtime state is persisted
+with owner-only permissions at `.data/current-run.json`; `GET /runs/current` returns the
+same shape for the UI.
+
+### Local setup
+
+1. Copy `.env.example` to `.env` and fill the required values. Generate the tool secret
+   locally with `openssl rand -hex 32`. Never commit `.env`, `agents.json`, or tunnel keys.
+2. Start the tool server: `npm run server` (default port `3000`).
+3. Start a public HTTPS tunnel: `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`.
+4. Set `PUBLIC_BASE_URL` to the HTTPS tunnel origin and configure an ElevenLabs
+   `post_call_transcription` webhook at `PUBLIC_BASE_URL/webhooks/elevenlabs`.
+   Put its HMAC secret in `ELEVENLABS_WEBHOOK_SECRET`.
+5. Provision or update all four agents: `npm run provision`. IDs are saved locally in
+   ignored `agents.json`.
+
+The tool endpoint requires `x-tool-secret`; provisioning stores that value in the
+ElevenLabs secrets manager and references the secret ID from every webhook tool.
+
+### Calls
+
+Use two imported Twilio numbers for the agent-to-agent simulation: one outbound number
+assigned to the buyer (`ELEVENLABS_PHONE_NUMBER_ID`) and one inbound number assigned to
+the selected persona (`PERSONA_PHONE_NUMBER_ID`, with its E.164 number passed as `--to`).
+
+```bash
+npm run call -- --persona premium_chain --phase QUOTE_COLLECTION --to +15555550123
+npm run call:all -- --to +15555550123
+```
+
+With only one number, the runner can reassign it for inbound persona mode, but Twilio
+generally cannot place a number-to-itself call; two numbers are the reliable mode.
+The server must remain reachable throughout calls so mid-call tools and the signed
+post-call transcription webhook can update the shared store.
+
+Failure behavior is closed: tool errors instruct the buyer to follow up instead of
+inventing data, invalid/stale webhooks receive `401`, initiation failures become
+`DROPPED`, partial line items survive, and unmatched provenance emits
+`[RECONCILE_WARN]`.
+
 Update this section after the team makes those decisions.

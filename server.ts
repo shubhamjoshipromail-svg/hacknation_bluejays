@@ -1,0 +1,25 @@
+import "dotenv/config";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import Fastify from "fastify";
+import { dispatchTool, TOOL_NAMES } from "./tools.js";
+import { mutate, snapshot, store, type Turn } from "./store.js";
+
+const MAX_WEBHOOK_AGE_SECONDS=30*60;
+export function verifyElevenLabsSignature(raw:Buffer,header:string|undefined,secret:string,now=Math.floor(Date.now()/1000)){if(!header||!secret)return false;const fields=Object.fromEntries(header.split(",").map(part=>part.trim().split("=",2)));const timestamp=Number(fields.t);const supplied=fields.v0;if(!Number.isFinite(timestamp)||Math.abs(now-timestamp)>MAX_WEBHOOK_AGE_SECONDS||!supplied)return false;const expected=createHmac("sha256",secret).update(`${timestamp}.${raw.toString("utf8")}`).digest("hex");try{return timingSafeEqual(Buffer.from(supplied,"hex"),Buffer.from(expected,"hex"))}catch{return false}}
+
+type WebhookTurn={id?:string;role?:"agent"|"user";message?:string;text?:string;time_in_call_secs?:number};
+type WebhookEvent={type:string;event_timestamp?:number;data?:{conversation_id?:string;status?:string;failure_reason?:string;transcript?:WebhookTurn[];conversation_initiation_client_data?:{dynamic_variables?:Record<string,string>}}};
+function ingestWebhook(event:WebhookEvent){const data=event.data??{};const conversationId=String(data.conversation_id??"");const vars=data.conversation_initiation_client_data?.dynamic_variables??{};const callId=vars.call_id??conversationId;const providerId=vars.provider_id??"UNKNOWN";
+  if(event.type==="call_initiation_failure"){mutate(s=>s.outcomes.push({callId,providerId,outcome:"DROPPED",reason:`call initiation failure: ${data.failure_reason??"unknown"}`,quoteId:null,callbackWindow:null,endedAt:new Date().toISOString()}));return}
+  if(event.type!=="post_call_transcription")return;
+  const finalTurnIds=new Set<string>();const finalTexts:string[]=[];
+  mutate(s=>{for(const [index,item] of (data.transcript??[]).entries()){const turnId=item.id??`${conversationId}_turn_${index}`;finalTurnIds.add(turnId);const text=String(item.message??item.text??"");finalTexts.push(text);const turn:Turn={turnId,callId,conversationId,speaker:item.role==="agent"?"BUYER_AGENT":"PROVIDER",text};s.transcriptTurns[turnId]=turn}});
+  for(const quote of store.quotes.filter(q=>q.callId===callId)){for(const item of quote.lineItems){for(const provenanceId of item.provenanceIds){const p=store.provenance[provenanceId];if(p&&!finalTurnIds.has(p.turnId)&&!finalTexts.some(t=>t.includes(p.transcriptExcerpt)||p.transcriptExcerpt.includes(t))){const detail=`${quote.quoteId}/${item.category}: provenance ${p.turnId} absent from final transcript`;console.warn(`[RECONCILE_WARN] ${detail}`);mutate(s=>s.timelineEvents.push({type:"RECONCILE_WARN",name:"missing_provenance_turn",callId,detail,at:new Date().toISOString()}))}}}}
+  if(!store.outcomes.some(o=>o.callId===callId)){const reason=data.status==="done"?"conversation ended without close_call":`conversation ended with status ${data.status??"unknown"}`;mutate(s=>s.outcomes.push({callId,providerId,outcome:"DROPPED",reason,quoteId:null,callbackWindow:null,endedAt:new Date().toISOString()}))}
+}
+
+export function buildServer(env:NodeJS.ProcessEnv=process.env){const app=Fastify({logger:false,bodyLimit:1_000_000});app.addContentTypeParser("application/json",{parseAs:"buffer"},(_req,body,done)=>done(null,body));
+  app.post<{Params:{toolName:string}}>("/tools/:toolName",async(req,reply)=>{const started=performance.now();if(req.headers["x-tool-secret"]!==env.TOOL_SHARED_SECRET)return reply.code(401).send({error:"unauthorized"});if(!TOOL_NAMES.includes(req.params.toolName as typeof TOOL_NAMES[number]))return reply.code(404).send({error:"unknown tool"});try{const raw=req.body as Buffer;const args=JSON.parse(raw.toString("utf8"));const result=dispatchTool(req.params.toolName,args);reply.header("server-timing",`tool;dur=${(performance.now()-started).toFixed(1)}`);return{ok:true,result}}catch(error){req.log.error(error);return reply.code(400).send({error:error instanceof Error?error.message:"tool failed",fallback:"Let me double-check and follow up."})}});
+  app.post("/webhooks/elevenlabs",async(req,reply)=>{const raw=req.body as Buffer;const secret=env.ELEVENLABS_WEBHOOK_SECRET??env.TOOL_SHARED_SECRET??"";if(!verifyElevenLabsSignature(raw,req.headers["elevenlabs-signature"] as string|undefined,secret))return reply.code(401).send({error:"invalid or stale signature"});try{ingestWebhook(JSON.parse(raw.toString("utf8")));return{status:"received"}}catch{return reply.code(400).send({error:"invalid webhook"})}});
+  app.get("/runs/current",async()=>snapshot());app.get("/health",async()=>({ok:true}));return app}
+if(import.meta.url===`file://${process.argv[1]}`){const port=Number(process.env.PORT??3000);buildServer().listen({port,host:"0.0.0.0"}).then(()=>console.log(`Tool server listening on :${port}`)).catch(error=>{console.error(error);process.exit(1)})}
