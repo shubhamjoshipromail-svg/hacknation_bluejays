@@ -1,26 +1,716 @@
-import { randomUUID } from "node:crypto";
-import type { CallOutcome, FeeCategory, ProvenanceAnchor, QuoteLineItem, QuoteOffer } from "./domain.js";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  CallFactKey,
+  CallFactStatus,
+  LineItemStatus,
+  type CallOutcome,
+  type FeeCategory,
+  type ProvenanceAnchor,
+  type QuoteLineItem,
+  type QuoteOffer,
+} from "./domain.js";
 import { computeKnownTotal, requestLeverage } from "./policy.js";
-import { jobSpec } from "./config.js";
+import { mintCompetitorOfferFact } from "./policy.js";
+import { jobSpec, SPOKEN_CALL_BRIEF } from "./config.js";
 import { mutate, store, type Turn } from "./store.js";
+import {
+  attachOffer,
+  getCallContext,
+  getCallContextByConversationId,
+} from "./negotiation-service.js";
+import {
+  applyProviderObservation,
+  summarizeCallIntelligence,
+  type ObservationFactInput,
+} from "./call-intelligence.js";
 
-function anchor(turn:Turn,claimType:ProvenanceAnchor["claimType"]){if(!store.transcriptTurns[turn.turnId])throw new Error("provenance turn must exist before logging a claim");const p:ProvenanceAnchor={provenanceId:`prov_${randomUUID()}`,conversationId:turn.conversationId??turn.callId,turnId:turn.turnId,speaker:turn.speaker,transcriptExcerpt:turn.text,claimType,extractionMethod:"LIVE_TOOL",confidence:1};mutate(s=>{s.provenance[p.provenanceId]=p});return p.provenanceId}
-export function recordTurn(callId:string,speaker:Turn["speaker"],text:string,conversationId?:string){const turn:Turn={turnId:`turn_${randomUUID()}`,callId,speaker,text,conversationId};mutate(s=>{s.transcriptTurns[turn.turnId]=turn});return turn}
-export const tools={
-  get_call_brief:()=>({text:jobSpec.callBrief!.text,sha256:jobSpec.callBrief!.sha256}),
-  log_quote_item:(turn:Turn,category:FeeCategory,rawLabel:string,amountMinor:number|null,status:QuoteLineItem["status"],scope:Record<string,string>={})=>{if(amountMinor!=null&&(!Number.isInteger(amountMinor)||amountMinor<0))throw new Error("amount_minor must be nonnegative integer cents");return{category,rawLabel,amountMinor,status,scope,provenanceIds:[anchor(turn,"PRICE_LINE_ITEM")]} satisfies QuoteLineItem},
-  log_quote_total:(turn:Turn,totalMinor:number)=>{if(!Number.isInteger(totalMinor)||totalMinor<0)throw new Error("total_minor must be nonnegative integer cents");return{totalMinor,provenanceId:anchor(turn,"TOTAL")}},
-  log_term:(turn:Turn)=>anchor(turn,"TERM"),
-  mark_unknown:(turn:Turn,category:FeeCategory)=>tools.log_quote_item(turn,category,"provider would not confirm",null,"UNKNOWN"),
-  request_leverage:(callId:string,targetProviderId:string,desiredConcession:"PRICE_MATCH"|"WAIVE_FEE",round:number,prior:number)=>{const d=requestLeverage({callId,targetProviderId,desiredConcession,round},store.verifiedFacts,prior);mutate(s=>s.policyDecisions.push(d));return d},
-  record_counteroffer:(initial:QuoteOffer,callId:string,totalMinor:number,turn:Turn):QuoteOffer=>{if(!Number.isInteger(totalMinor)||totalMinor<0||totalMinor>=initial.totals.statedAllInMinor!)throw new Error("counteroffer total must be lower nonnegative integer cents");const discount=initial.totals.statedAllInMinor!-totalMinor;const discountItem=tools.log_quote_item(turn,"DISCOUNT","verified competitor concession",discount,"INCLUDED");return{...initial,quoteId:`quote_${randomUUID()}`,callId,offerVersion:initial.offerVersion+1,stage:"NEGOTIATED",lineItems:[...initial.lineItems,discountItem],totals:{...initial.totals,statedAllInMinor:totalMinor,computedKnownMinor:totalMinor,reconciliation:"MATCH"},redFlags:[]}},
-  close_call:(callId:string,providerId:string,outcome:CallOutcome["outcome"],reason:string,quoteId:string|null):CallOutcome=>{if(!reason.trim())throw new Error("structured close reason is required");const result={callId,providerId,outcome,reason,quoteId,callbackWindow:null,endedAt:new Date().toISOString()} satisfies CallOutcome;mutate(s=>s.outcomes.push(result));return result}
+function anchor(turn: Turn, claimType: ProvenanceAnchor["claimType"]) {
+  if (!store.transcriptTurns[turn.turnId])
+    throw new Error("provenance turn must exist before logging a claim");
+  const p: ProvenanceAnchor = {
+    provenanceId: `prov_${randomUUID()}`,
+    conversationId: turn.conversationId ?? turn.callId,
+    turnId: turn.turnId,
+    speaker: turn.speaker,
+    transcriptExcerpt: turn.text,
+    claimType,
+    extractionMethod: "LIVE_TOOL",
+    confidence: 1,
+  };
+  mutate((s) => {
+    s.provenance[p.provenanceId] = p;
+  });
+  return p.provenanceId;
+}
+export function recordTurn(
+  callId: string,
+  speaker: Turn["speaker"],
+  text: string,
+  conversationId?: string,
+) {
+  const turn: Turn = {
+    turnId: `turn_${randomUUID()}`,
+    callId,
+    speaker,
+    text,
+    conversationId,
+  };
+  mutate((s) => {
+    s.transcriptTurns[turn.turnId] = turn;
+  });
+  return turn;
+}
+function activeCallBrief() {
+  const negotiation = store.currentNegotiationId
+    ? store.negotiations[store.currentNegotiationId]
+    : null;
+  if (!negotiation)
+    return {
+      text: SPOKEN_CALL_BRIEF,
+      vehicleVin: jobSpec.core.vehicle.vin,
+      sha256: jobSpec.callBrief!.sha256,
+    };
+  const v = negotiation.intake.vehicle;
+  const text = `I need a cash-pay windshield replacement quote for a ${v.year} ${v.make} ${v.model} in ZIP ${negotiation.intake.postalCode}. Aftermarket-equivalent glass is acceptable, any required camera calibration and a warranty must be included, and either mobile or in-shop service works.`;
+  return {
+    text,
+    vehicleVin: v.vin,
+    sha256: createHash("sha256")
+      .update(JSON.stringify(negotiation.intake))
+      .digest("hex"),
+  };
+}
+export const tools = {
+  get_call_brief: () => ({
+    ...activeCallBrief(),
+    vinUsage:
+      "Only provide the VIN if the shop explicitly asks for it to identify the exact glass. Never volunteer or read it in the opening brief.",
+  }),
+  get_prior_quote: (targetProviderId: string) => {
+    const negotiation = store.currentNegotiationId
+      ? store.negotiations[store.currentNegotiationId]
+      : null;
+    const candidates = [...(negotiation?.offers ?? []), ...store.quotes]
+      .filter(
+        (q) =>
+          q.providerId === targetProviderId &&
+          q.totals.statedAllInMinor != null,
+      )
+      .sort((a, b) => b.offerVersion - a.offerVersion);
+    const quote = candidates[0];
+    if (!quote) throw new Error("no prior quote exists for this provider");
+    return {
+      initialQuoteId: quote.quoteId,
+      providerId: quote.providerId,
+      allInMinor: quote.totals.statedAllInMinor,
+      spokenTotal: `$${(quote.totals.statedAllInMinor! / 100).toFixed(2)}`,
+      stage: quote.stage,
+      comparability: quote.comparability,
+    };
+  },
+  log_quote_item: (
+    turn: Turn,
+    category: FeeCategory,
+    rawLabel: string,
+    amountMinor: number | null,
+    status: QuoteLineItem["status"],
+    scope: Record<string, string> = {},
+  ) => {
+    if (
+      amountMinor != null &&
+      (!Number.isInteger(amountMinor) || amountMinor < 0)
+    )
+      throw new Error("amount_minor must be nonnegative integer cents");
+    return {
+      category,
+      rawLabel,
+      amountMinor,
+      status,
+      scope,
+      provenanceIds: [anchor(turn, "PRICE_LINE_ITEM")],
+    } satisfies QuoteLineItem;
+  },
+  log_quote_total: (turn: Turn, totalMinor: number) => {
+    if (!Number.isInteger(totalMinor) || totalMinor < 0)
+      throw new Error("total_minor must be nonnegative integer cents");
+    return { totalMinor, provenanceId: anchor(turn, "TOTAL") };
+  },
+  log_term: (turn: Turn) => anchor(turn, "TERM"),
+  mark_unknown: (turn: Turn, category: FeeCategory) =>
+    tools.log_quote_item(
+      turn,
+      category,
+      "provider would not confirm",
+      null,
+      "UNKNOWN",
+    ),
+  request_leverage: (
+    callId: string,
+    targetProviderId: string,
+    desiredConcession: "PRICE_MATCH" | "WAIVE_FEE",
+    round: number,
+    prior: number,
+  ) => {
+    const d = requestLeverage(
+      { callId, targetProviderId, desiredConcession, round },
+      store.verifiedFacts,
+      prior,
+    );
+    mutate((s) => s.policyDecisions.push(d));
+    return d;
+  },
+  record_counteroffer: (
+    initial: QuoteOffer,
+    callId: string,
+    totalMinor: number,
+    turn: Turn,
+  ): QuoteOffer => {
+    if (
+      !Number.isInteger(totalMinor) ||
+      totalMinor < 0 ||
+      totalMinor >= initial.totals.statedAllInMinor!
+    )
+      throw new Error(
+        "counteroffer total must be lower nonnegative integer cents",
+      );
+    const discount = initial.totals.statedAllInMinor! - totalMinor;
+    const discountItem = tools.log_quote_item(
+      turn,
+      "DISCOUNT",
+      "verified competitor concession",
+      discount,
+      "INCLUDED",
+    );
+    return {
+      ...initial,
+      quoteId: `quote_${randomUUID()}`,
+      callId,
+      offerVersion: initial.offerVersion + 1,
+      stage: "NEGOTIATED",
+      lineItems: [...initial.lineItems, discountItem],
+      totals: {
+        ...initial.totals,
+        statedAllInMinor: totalMinor,
+        computedKnownMinor: totalMinor,
+        reconciliation: "MATCH",
+      },
+      redFlags: [],
+    };
+  },
+  close_call: (
+    callId: string,
+    providerId: string,
+    outcome: CallOutcome["outcome"],
+    reason: string,
+    quoteId: string | null,
+  ): CallOutcome => {
+    if (!reason.trim()) throw new Error("structured close reason is required");
+    const result = {
+      callId,
+      providerId,
+      outcome,
+      reason,
+      quoteId,
+      callbackWindow: null,
+      endedAt: new Date().toISOString(),
+    } satisfies CallOutcome;
+    mutate((s) => s.outcomes.push(result));
+    return result;
+  },
 };
 
-type VoiceArgs=Record<string,unknown>&{call_id?:string;provider_id?:string;turn_id?:string;turn_text?:string};
-function voiceTurn(a:VoiceArgs){if(!a.call_id||!a.turn_text)throw new Error("call_id and turn_text are required");const turnId=String(a.turn_id??`voice_${randomUUID()}`);const existing=store.transcriptTurns[turnId];if(existing)return existing;const t:Turn={turnId,callId:a.call_id,speaker:"PROVIDER",text:a.turn_text};mutate(s=>{s.transcriptTurns[t.turnId]=t});return t}
-function draft(callId:string,providerId:string){if(!callId||!providerId)throw new Error("call_id and provider_id are required");if(!store.drafts[callId])mutate(s=>{s.drafts[callId]={callId,providerId,lineItems:[],statedTotalMinor:null,terms:{}}});return store.drafts[callId]}
-const CHECKLIST:FeeCategory[]=["ADAS_CALIBRATION","MOBILE_SERVICE","MOLDINGS_CLIPS_SENSOR_KIT","DISPOSAL_ENVIRONMENTAL","TAX"];
-function checklistStatus(callId:string,providerId:string){const logged=draft(callId,providerId).lineItems.map(i=>i.category);return{logged_categories:[...new Set(logged)],remaining_categories:CHECKLIST.filter(c=>!logged.includes(c))}}
-export function dispatchTool(name:string,a:VoiceArgs):unknown{const callId=String(a.call_id??"");const providerId=String(a.provider_id??"");switch(name){case"get_call_brief":return tools.get_call_brief();case"log_quote_item":{const item=tools.log_quote_item(voiceTurn(a),String(a.category) as FeeCategory,String(a.raw_label??a.category),a.amount_minor==null?null:Number(a.amount_minor),String(a.status) as QuoteLineItem["status"],(a.scope??{}) as Record<string,string>);mutate(s=>draft(callId,providerId).lineItems.push(item));return{...item,checklist:checklistStatus(callId,providerId)}}case"log_quote_total":{const result=tools.log_quote_total(voiceTurn(a),Number(a.total_minor));mutate(()=>{draft(callId,providerId).statedTotalMinor=Number(a.total_minor)});return result}case"log_term":{const result={provenanceId:tools.log_term(voiceTurn(a))};mutate(()=>{draft(callId,providerId).terms[String(a.term_name??"term")]=a.value});return result}case"mark_unknown":{const item=tools.mark_unknown(voiceTurn(a),String(a.category) as FeeCategory);mutate(()=>draft(callId,providerId).lineItems.push(item));return{...item,checklist:checklistStatus(callId,providerId)}}case"request_leverage":return tools.request_leverage(callId,providerId,String(a.desired_concession) as "PRICE_MATCH"|"WAIVE_FEE",Number(a.round??1),Number(a.prior_rounds??0));case"record_counteroffer":{const initial=store.quotes.find(q=>q.quoteId===a.initial_quote_id);if(!initial)throw new Error("initial quote not found");const offer=tools.record_counteroffer(initial,callId,Number(a.total_minor),voiceTurn(a));mutate(s=>s.quotes.push(offer));return offer}case"close_call":{let quoteId=a.quote_id&&store.quotes.some(q=>q.quoteId===a.quote_id)?String(a.quote_id):null;if(String(a.outcome)==="QUOTED"&&!quoteId){const d=draft(callId,providerId),known=computeKnownTotal({lineItems:d.lineItems});const q:QuoteOffer={quoteId:`quote_${randomUUID()}`,providerId,callId,specRevision:1,offerVersion:1,stage:"INITIAL",currency:"USD",lineItems:d.lineItems,totals:{statedAllInMinor:d.statedTotalMinor,computedKnownMinor:known.computedKnownMinor,taxStatus:d.lineItems.some(i=>i.category==="TAX"&&i.status==="INCLUDED")?"INCLUDED":"UNKNOWN",reconciliation:d.statedTotalMinor!=null&&known.isAllIn&&d.statedTotalMinor===known.computedKnownMinor?"MATCH":"NOT_COMPARABLE_YET"},terms:{validUntil:null,writtenConfirmation:Boolean(d.terms.written_confirmation),warranty:"UNKNOWN",appointmentWindow:"UNKNOWN"},comparability:known.isAllIn?"COMPARABLE":"NON_COMPARABLE",redFlags:[]};quoteId=q.quoteId;mutate(s=>s.quotes.push(q))}return tools.close_call(callId,providerId,String(a.outcome) as CallOutcome["outcome"],String(a.reason??""),quoteId)}default:throw new Error(`unknown tool: ${name}`)}}
-export const TOOL_NAMES=["get_call_brief","log_quote_item","log_quote_total","log_term","mark_unknown","request_leverage","record_counteroffer","close_call"] as const;
+type VoiceArgs = Record<string, unknown> & {
+  call_id?: string;
+  provider_id?: string;
+  conversation_id?: string;
+  turn_id?: string;
+  turn_text?: string;
+};
+function canonicalContext(a: VoiceArgs) {
+  const requestedCallId = String(a.call_id ?? ""),
+    providerId = String(a.provider_id ?? ""),
+    conversationId = String(a.conversation_id ?? "");
+  if (!providerId || (!requestedCallId && !conversationId))
+    throw new Error("provider_id and a call correlation id are required");
+  let context;
+  try {
+    context = requestedCallId
+      ? getCallContext(requestedCallId, providerId)
+      : undefined;
+  } catch {
+    context = undefined;
+  }
+  context ??= getCallContextByConversationId(conversationId, providerId);
+  return { callId: context.call.callId, providerId, ...context };
+}
+function canonicalBrief(a: VoiceArgs) {
+  const { negotiation } = canonicalContext(a),
+    v = negotiation.intake.vehicle,
+    d = negotiation.intake.damage;
+  const unknownFeatures = negotiation.intake.features.includes("NOT_SURE"),
+    features = negotiation.intake.features
+      .filter((f) => f !== "NOT_SURE")
+      .map((f) => f.toLowerCase().replaceAll("_", " "));
+  const service =
+    d.service === "NOT_SURE"
+      ? "a windshield repair-or-replacement assessment"
+      : `a windshield ${d.service.toLowerCase()}`;
+  const featureText = unknownFeatures
+    ? "The vehicle features have not been confirmed; ask the shop to identify any required calibration from the vehicle details. "
+    : features.length
+      ? `Known features include ${features.join(", ")}. `
+      : "The customer reported no special windshield features. ";
+  const text = `I need a cash-pay quote for ${service} on a ${v.year} ${v.make} ${v.model} in ZIP ${negotiation.intake.postalCode}. The damage is ${d.type.toLowerCase().replaceAll("_", " ")} near the ${d.location.toLowerCase().replaceAll("_", " ")}. ${featureText}Please include any required calibration, all fees, tax, and warranty in the total.`;
+  return {
+    text,
+    vehicleVin: v.vin,
+    vehicleFacts: {
+      year: v.year,
+      make: v.make,
+      model: v.model,
+      frontCamera: unknownFeatures ? "UNKNOWN" : v.frontCamera,
+      features: negotiation.intake.features,
+    },
+    sha256: createHash("sha256")
+      .update(JSON.stringify(negotiation.intake))
+      .digest("hex"),
+    vinUsage:
+      "Only provide the VIN if the shop explicitly asks for it to identify the exact glass. Never volunteer or read it in the opening brief.",
+  };
+}
+function canonicalTurn(a: VoiceArgs, claimType: ProvenanceAnchor["claimType"]) {
+  const { callId, negotiation, call } = canonicalContext(a);
+  if (!a.turn_text) throw new Error("turn_text is required");
+  const turnId = String(a.turn_id ?? `voice_${randomUUID()}`),
+    text = String(a.turn_text);
+  const existing = negotiation.evidence.find((p) => p.turnId === turnId);
+  if (existing) return existing;
+  const p: ProvenanceAnchor = {
+    provenanceId: `prov_${randomUUID()}`,
+    conversationId: call.conversationId ?? callId,
+    turnId,
+    speaker: "PROVIDER",
+    transcriptExcerpt: text,
+    claimType,
+    extractionMethod: "LIVE_TOOL",
+    confidence: 1,
+  };
+  mutate(() => {
+    const ctx = getCallContext(callId);
+    if (!ctx.call.transcript.some((t) => t.turnId === turnId))
+      ctx.call.transcript.push({
+        turnId,
+        speaker: "SHOP",
+        text,
+        timeSeconds: null,
+      });
+    ctx.negotiation.evidence.push(p);
+  });
+  return p;
+}
+function canonicalDraft(a: VoiceArgs) {
+  const { callId } = canonicalContext(a);
+  let result = getCallContext(callId).call.draft;
+  if (!result) {
+    mutate(() => {
+      getCallContext(callId).call.draft = {
+        lineItems: [],
+        statedTotalMinor: null,
+        terms: {},
+      };
+    });
+    result = getCallContext(callId).call.draft;
+  }
+  return result!;
+}
+function quoteFromDraft(a: VoiceArgs) {
+  const { callId, providerId, negotiation, call } = canonicalContext(a),
+    d = canonicalDraft(a),
+    known = computeKnownTotal({ lineItems: d.lineItems }),
+    tax = d.lineItems.find((i) => i.category === "TAX"),
+    state = call.intelligence
+      ? summarizeCallIntelligence(negotiation, call)
+      : null,
+    facts = new Map(call.intelligence?.facts.map((f) => [f.key, f]) ?? []),
+    taxFact = facts.get("TAX"),
+    taxStatus =
+      taxFact?.itemStatus === "INCLUDED" || tax?.status === "INCLUDED"
+        ? ("INCLUDED" as const)
+        : taxFact?.itemStatus === "EXCLUDED" ||
+            tax?.status === "EXCLUDED" ||
+            tax?.status === "NOT_APPLICABLE"
+          ? ("EXCLUDED" as const)
+          : ("UNKNOWN" as const),
+    comparable = state ? state.canClose : known.isAllIn,
+    mismatch =
+      d.statedTotalMinor != null &&
+      known.computedKnownMinor > d.statedTotalMinor,
+    reconciliation = comparable
+      ? mismatch
+        ? ("TOTAL_MISMATCH" as const)
+        : ("MATCH" as const)
+      : ("NOT_COMPARABLE_YET" as const);
+  const q: QuoteOffer = {
+    quoteId: `quote_${randomUUID()}`,
+    providerId,
+    callId,
+    specRevision: 1,
+    offerVersion:
+      negotiation.offers.filter((o) => o.providerId === providerId).length + 1,
+    stage: call.phase === "NEGOTIATION" ? "NEGOTIATED" : "INITIAL",
+    currency: "USD",
+    lineItems: d.lineItems,
+    totals: {
+      statedAllInMinor: d.statedTotalMinor,
+      computedKnownMinor: known.computedKnownMinor,
+      taxStatus,
+      reconciliation,
+    },
+    terms: {
+      validUntil: null,
+      writtenConfirmation: Boolean(d.terms.written_confirmation),
+      warranty: String(
+        facts.get("WARRANTY")?.value ?? d.terms.warranty ?? "UNKNOWN",
+      ),
+      appointmentWindow: String(
+        facts.get("AVAILABILITY")?.value ??
+          d.terms.availability ??
+          d.terms.appointment_window ??
+          "UNKNOWN",
+      ),
+    },
+    comparability: comparable && !mismatch ? "COMPARABLE" : "NON_COMPARABLE",
+    redFlags: [],
+  };
+  attachOffer(negotiation.negotiationId, q);
+  if (q.stage === "INITIAL") {
+    const scopeHash = createHash("sha256")
+        .update(JSON.stringify(negotiation.intake))
+        .digest("hex"),
+      fact = mintCompetitorOfferFact(q, scopeHash);
+    if (fact)
+      mutate(() => getCallContext(callId).negotiation.verifiedFacts.push(fact));
+  }
+  return q;
+}
+function eligibleLeverageFacts(
+  negotiation: ReturnType<typeof canonicalContext>["negotiation"],
+) {
+  const providers = new Set(
+    negotiation.offers
+      .filter((offer) => {
+        if (
+          offer.stage !== "INITIAL" ||
+          offer.comparability !== "COMPARABLE" ||
+          offer.totals.reconciliation !== "MATCH"
+        )
+          return false;
+        const source = negotiation.calls.find(
+          (call) => call.callId === offer.callId,
+        );
+        return (
+          !source?.intelligence ||
+          summarizeCallIntelligence(negotiation, source).canClose
+        );
+      })
+      .map((offer) => offer.providerId),
+  );
+  return negotiation.verifiedFacts.filter(
+    (fact) =>
+      fact.subjectProviderId != null && providers.has(fact.subjectProviderId),
+  );
+}
+export function recoverCompletedQuote(callId: string, providerId: string) {
+  const { call, negotiation } = getCallContext(callId, providerId);
+  if (
+    call.phase !== "QUOTE_COLLECTION" ||
+    negotiation.offers.some((offer) => offer.callId === callId)
+  )
+    return null;
+  const state = call.intelligence
+    ? summarizeCallIntelligence(negotiation, call)
+    : null;
+  let quote: QuoteOffer | null = null;
+  if (state?.canClose && call.draft?.statedTotalMinor != null)
+    quote = quoteFromDraft({
+      call_id: callId,
+      provider_id: providerId,
+      conversation_id: call.conversationId ?? undefined,
+    });
+  if (!quote) {
+    const scenario = negotiation.quoteScenarios
+      .filter((item) => item.callId === callId && item.attemptNumber === call.attemptNumber && item.active && item.readiness === "COMPARABLE" && item.totalMinor != null)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    if (!scenario || scenario.confidence < 0.85) return null;
+    const scenarioTotal = scenario.totalMinor;
+    if (scenarioTotal == null) return null;
+    const provenanceIds = negotiation.evidence
+      .filter((item) => scenario.evidenceTurnIds.includes(item.turnId))
+      .map((item) => item.provenanceId);
+    if (!provenanceIds.length) return null;
+    const categories = [...new Set([...scenario.includedCategories, ...scenario.excludedCategories])];
+    const recoveredQuote: QuoteOffer = {
+      quoteId: `quote_${randomUUID()}`,
+      providerId,
+      callId,
+      specRevision: 1,
+      offerVersion: negotiation.offers.filter((item) => item.providerId === providerId).length + 1,
+      stage: "INITIAL",
+      currency: "USD",
+      lineItems: categories.map((category) => ({
+        category,
+        rawLabel: scenario.label,
+        amountMinor: null,
+        status: scenario.includedCategories.includes(category) ? "INCLUDED" : "EXCLUDED",
+        scope: { condition: scenario.conditions.join("; ") },
+        provenanceIds,
+      })),
+      totals: { statedAllInMinor: scenarioTotal, computedKnownMinor: scenarioTotal, taxStatus: scenario.taxStatus, reconciliation: "MATCH" },
+      terms: { validUntil: null, writtenConfirmation: false, warranty: "UNKNOWN", appointmentWindow: "UNKNOWN" },
+      comparability: "COMPARABLE",
+      redFlags: [],
+    };
+    quote = recoveredQuote;
+    attachOffer(negotiation.negotiationId, recoveredQuote);
+    const scopeHash = createHash("sha256").update(JSON.stringify(negotiation.intake)).digest("hex"),
+      fact = mintCompetitorOfferFact(recoveredQuote, scopeHash);
+    if (fact) mutate(() => getCallContext(callId).negotiation.verifiedFacts.push(fact));
+  }
+  mutate(() => {
+    const current = getCallContext(callId).call;
+    current.outcome = "QUOTED";
+    current.reason =
+      "Recovered confirmed quote from completed transcript-backed call state";
+  });
+  return quote;
+}
+export function dispatchTool(name: string, a: VoiceArgs): unknown {
+  const { callId, providerId, negotiation, call } = canonicalContext(a);
+  switch (name) {
+    case "get_call_brief":
+      return canonicalBrief(a);
+    case "get_call_state":
+      return {
+        brief: canonicalBrief(a),
+        ...summarizeCallIntelligence(negotiation, call),
+      };
+    case "record_provider_answer": {
+      if (!Array.isArray(a.facts) || !a.facts.length)
+        throw new Error("facts must contain at least one extracted fact");
+      const p = canonicalTurn(a, "STATEMENT"),
+        facts: ObservationFactInput[] = a.facts.map((raw) => {
+          const fact = raw as Record<string, unknown>,
+            amount =
+              fact.amount_minor == null ? null : Number(fact.amount_minor);
+          if (amount != null && (!Number.isInteger(amount) || amount < 0))
+            throw new Error("amount_minor must be nonnegative integer cents");
+          return {
+            key: CallFactKey.parse(fact.key),
+            status: CallFactStatus.parse(fact.status),
+            value: fact.value == null ? null : String(fact.value),
+            amountMinor: amount,
+            itemStatus:
+              fact.item_status == null
+                ? null
+                : LineItemStatus.parse(fact.item_status),
+            confirmedCorrection: Boolean(fact.confirmed_correction),
+          };
+        });
+      let result: unknown;
+      mutate(() => {
+        result = applyProviderObservation(
+          getCallContext(callId).negotiation,
+          getCallContext(callId).call,
+          {
+            turnId: p.turnId,
+            provenanceId: p.provenanceId,
+            questionTopic:
+              a.question_topic == null
+                ? null
+                : CallFactKey.parse(a.question_topic),
+            facts,
+          },
+        );
+      });
+      return result;
+    }
+    case "get_prior_quote": {
+      const quote = [...negotiation.offers]
+        .filter(
+          (q) =>
+            q.providerId === providerId && q.totals.statedAllInMinor != null,
+        )
+        .sort((x, y) => y.offerVersion - x.offerVersion)[0];
+      if (!quote) throw new Error("no prior quote exists for this provider");
+      return {
+        initialQuoteId: quote.quoteId,
+        providerId,
+        allInMinor: quote.totals.statedAllInMinor,
+        spokenTotal: `$${(quote.totals.statedAllInMinor! / 100).toFixed(2)}`,
+        stage: quote.stage,
+        comparability: quote.comparability,
+        benchmark: {
+          classification: negotiation.benchmark.classification,
+          range: [
+            negotiation.benchmark.lowMinor,
+            negotiation.benchmark.highMinor,
+          ],
+          directionalOnly: negotiation.benchmark.classification !== "VERIFIED",
+        },
+      };
+    }
+    case "log_quote_item": {
+      const amount = a.amount_minor == null ? null : Number(a.amount_minor);
+      if (amount != null && (!Number.isInteger(amount) || amount < 0))
+        throw new Error("amount_minor must be nonnegative integer cents");
+      const p = canonicalTurn(a, "PRICE_LINE_ITEM"),
+        item = {
+          category: String(a.category) as FeeCategory,
+          rawLabel: String(a.raw_label ?? a.category),
+          amountMinor: amount,
+          status: String(a.status) as QuoteLineItem["status"],
+          scope: (a.scope ?? {}) as Record<string, string>,
+          provenanceIds: [p.provenanceId],
+        } satisfies QuoteLineItem;
+      mutate(() => canonicalDraft(a).lineItems.push(item));
+      return item;
+    }
+    case "log_quote_total": {
+      const total = Number(a.total_minor);
+      if (!Number.isInteger(total) || total < 0)
+        throw new Error("total_minor must be nonnegative integer cents");
+      const p = canonicalTurn(a, "TOTAL");
+      mutate(() => {
+        canonicalDraft(a).statedTotalMinor = total;
+      });
+      return { totalMinor: total, provenanceId: p.provenanceId };
+    }
+    case "log_term": {
+      const p = canonicalTurn(a, "TERM");
+      mutate(() => {
+        canonicalDraft(a).terms[String(a.term_name ?? "term")] = a.value;
+      });
+      return { provenanceId: p.provenanceId };
+    }
+    case "mark_unknown": {
+      const p = canonicalTurn(a, "PRICE_LINE_ITEM"),
+        item = {
+          category: String(a.category) as FeeCategory,
+          rawLabel: "provider would not confirm",
+          amountMinor: null,
+          status: "UNKNOWN" as const,
+          scope: {},
+          provenanceIds: [p.provenanceId],
+        };
+      mutate(() => canonicalDraft(a).lineItems.push(item));
+      return item;
+    }
+    case "request_leverage": {
+      const decision = requestLeverage(
+        {
+          callId,
+          targetProviderId: providerId,
+          desiredConcession: String(a.desired_concession) as
+            "PRICE_MATCH" | "WAIVE_FEE",
+          round: Number(a.round ?? 1),
+        },
+        eligibleLeverageFacts(negotiation),
+        Number(a.prior_rounds ?? 0),
+      );
+      mutate(() =>
+        getCallContext(callId).negotiation.policyDecisions.push(decision),
+      );
+      return decision;
+    }
+    case "record_counteroffer": {
+      const initial = negotiation.offers.find(
+        (q) => q.quoteId === a.initial_quote_id,
+      );
+      if (!initial) throw new Error("initial quote not found");
+      const total = Number(a.total_minor);
+      if (
+        !Number.isInteger(total) ||
+        total < 0 ||
+        total >= initial.totals.statedAllInMinor!
+      )
+        throw new Error(
+          "counteroffer total must be lower nonnegative integer cents",
+        );
+      const p = canonicalTurn(a, "TOTAL"),
+        discount = initial.totals.statedAllInMinor! - total,
+        offer: QuoteOffer = {
+          ...initial,
+          quoteId: `quote_${randomUUID()}`,
+          callId,
+          offerVersion: initial.offerVersion + 1,
+          stage: "NEGOTIATED",
+          lineItems: [
+            ...initial.lineItems,
+            {
+              category: "DISCOUNT",
+              rawLabel: "provider concession",
+              amountMinor: discount,
+              status: "INCLUDED",
+              scope: {},
+              provenanceIds: [p.provenanceId],
+            },
+          ],
+          totals: {
+            ...initial.totals,
+            statedAllInMinor: total,
+            computedKnownMinor: total,
+            reconciliation: "MATCH",
+          },
+          redFlags: [],
+        };
+      attachOffer(negotiation.negotiationId, offer);
+      return offer;
+    }
+    case "close_call": {
+      const outcome = String(a.outcome) as CallOutcome["outcome"],
+        reason = String(a.reason ?? "");
+      if (!reason.trim())
+        throw new Error("structured close reason is required");
+      const state = call.intelligence
+        ? summarizeCallIntelligence(negotiation, call)
+        : null;
+      if (outcome === "QUOTED" && state && !state.canClose)
+        throw new Error(
+          `quote cannot close yet: ${state.completionStatus}; resolve ${state.criticalGaps.join(", ") || "the active contradiction"}`,
+        );
+      let quote = negotiation.offers.find((q) => q.callId === callId);
+      if (outcome === "QUOTED" && !quote) quote = quoteFromDraft(a);
+      mutate(() => {
+        const ctx = getCallContext(callId);
+        ctx.call.outcome = outcome;
+        ctx.call.reason = reason;
+        ctx.negotiation.updatedAt = new Date().toISOString();
+      });
+      return {
+        callId,
+        providerId,
+        outcome,
+        reason,
+        quoteId: quote?.quoteId ?? null,
+        callbackWindow: null,
+        endedAt: new Date().toISOString(),
+        intelligence: state,
+      };
+    }
+    default:
+      throw new Error(`unknown tool: ${name}`);
+  }
+}
+export const TOOL_NAMES = [
+  "get_call_brief",
+  "get_call_state",
+  "record_provider_answer",
+  "get_prior_quote",
+  "log_quote_item",
+  "log_quote_total",
+  "log_term",
+  "mark_unknown",
+  "request_leverage",
+  "record_counteroffer",
+  "close_call",
+] as const;
