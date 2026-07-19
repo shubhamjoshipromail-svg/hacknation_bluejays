@@ -3,7 +3,7 @@ import { FileCheck2, PhoneCall, Scale, Handshake, Trophy, Radio } from "lucide-r
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { to: "/", label: "Job Spec", icon: FileCheck2, step: "01" },
+  { to: "/", label: "Your Job", icon: FileCheck2, step: "01" },
   { to: "/calls", label: "Live Calls", icon: PhoneCall, step: "02" },
   { to: "/compare", label: "Compare Quotes", icon: Scale, step: "03" },
   { to: "/negotiation", label: "Negotiation", icon: Handshake, step: "04" },

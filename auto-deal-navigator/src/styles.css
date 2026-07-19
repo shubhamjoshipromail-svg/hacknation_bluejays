@@ -51,56 +51,59 @@
 
 :root {
   color-scheme: light;
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* Calm automotive editorial system: airy canvas, navy hierarchy, amber detail. */
-  --background: oklch(0.975 0.009 244);
-  --foreground: oklch(0.285 0.055 252);
-  --panel: oklch(1 0 0);
-  --panel-2: oklch(0.962 0.012 244);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.285 0.055 252);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.285 0.055 252);
-  --primary: oklch(0.39 0.105 250);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.94 0.015 244);
-  --secondary-foreground: oklch(0.31 0.065 252);
-  --muted: oklch(0.95 0.011 244);
-  --muted-foreground: oklch(0.52 0.035 250);
-  --accent: oklch(0.925 0.025 244);
-  --accent-foreground: oklch(0.31 0.065 252);
-  --destructive: oklch(0.56 0.205 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.86 0.018 244);
-  --input: oklch(0.88 0.018 244);
-  --ring: oklch(0.56 0.13 247);
-  --success: oklch(0.47 0.13 153);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.59 0.155 55);
-  --warning-foreground: oklch(0.26 0.055 50);
-  --danger: oklch(0.56 0.205 27);
-  --danger-foreground: oklch(0.99 0 0);
-  --info: oklch(0.51 0.13 238);
+  /* Cherry blossom: warm white foundation with restrained blush and mint accents. */
+  --background: #fffdfc;
+  --foreground: #201b1d;
+  --panel: #ffffff;
+  --panel-2: #fff8f8;
+  --card: #ffffff;
+  --card-foreground: #201b1d;
+  --popover: #ffffff;
+  --popover-foreground: #201b1d;
+  --primary: #b84f6b;
+  --primary-foreground: #ffffff;
+  --secondary: #f2c7c7;
+  --secondary-foreground: #4a292f;
+  --muted: #f8f1f1;
+  --muted-foreground: #786d70;
+  --accent: #f6e6e7;
+  --accent-foreground: #5d303a;
+  --destructive: #c9475d;
+  --destructive-foreground: #ffffff;
+  --border: #eadfe1;
+  --input: #ded1d4;
+  --ring: #c45e79;
+  --success: #3c8063;
+  --success-foreground: #ffffff;
+  --warning: #a66d19;
+  --warning-foreground: #ffffff;
+  --danger: #c9475d;
+  --danger-foreground: #ffffff;
+  --info: #547a95;
 
-  --sidebar: oklch(0.992 0.004 244);
-  --sidebar-foreground: oklch(0.285 0.055 252);
-  --sidebar-primary: oklch(0.39 0.105 250);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.022 244);
-  --sidebar-accent-foreground: oklch(0.31 0.065 252);
-  --sidebar-border: oklch(0.87 0.018 244);
-  --sidebar-ring: oklch(0.56 0.13 247);
+  --sidebar: #fffafa;
+  --sidebar-foreground: #272123;
+  --sidebar-primary: #b84f6b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6e8e9;
+  --sidebar-accent-foreground: #4a292f;
+  --sidebar-border: #eadfe1;
+  --sidebar-ring: #c45e79;
 
-  --brand-orange: oklch(0.66 0.16 54);
-  --gradient-hero: linear-gradient(135deg, oklch(0.945 0.032 244), oklch(0.985 0.012 72));
-  --shadow-panel:
-    0 1px 2px oklch(0.27 0.045 250 / 0.04), 0 12px 32px -24px oklch(0.27 0.07 250 / 0.28);
-  --shadow-glow: 0 8px 24px -14px oklch(0.39 0.105 250 / 0.45);
+  --brand-orange: #b84f6b;
+  --gradient-hero: linear-gradient(135deg, rgb(255 183 197 / 0.24), rgb(213 243 216 / 0.35));
+  --shadow-panel: 0 1px 2px rgb(57 35 41 / 0.03), 0 14px 40px -28px rgb(79 42 53 / 0.28);
+  --shadow-glow: 0 8px 24px -14px rgb(184 79 107 / 0.3);
 }
 
 @utility panel {
-  background-color: var(--color-panel);
+  background: linear-gradient(
+    155deg,
+    #ffffff,
+    color-mix(in oklab, var(--color-panel-2) 38%, #ffffff) 58%
+  );
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
@@ -108,6 +111,14 @@
     border-color 180ms ease,
     box-shadow 180ms ease,
     transform 180ms ease;
+}
+
+@utility page-shell {
+  width: 100%;
+  max-width: 92rem;
+  margin-inline: auto;
+  padding: 2.25rem clamp(1rem, 3vw, 3rem) 4rem;
+  animation: page-enter 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @utility mono {
@@ -134,20 +145,19 @@
     font-family: var(--font-sans);
   }
   body {
-    background-color: var(--color-background);
+    background:
+      radial-gradient(circle at 82% -8%, rgb(255 183 197 / 0.2), transparent 34rem),
+      radial-gradient(circle at 18% 105%, rgb(213 243 216 / 0.3), transparent 32rem),
+      var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     min-width: 320px;
-    background-image:
-      linear-gradient(90deg, oklch(0.39 0.105 250 / 0.025) 1px, transparent 1px),
-      linear-gradient(oklch(0.39 0.105 250 / 0.025) 1px, transparent 1px);
-    background-size: 32px 32px;
   }
   h1,
   h2,
   h3 {
-    color: oklch(0.27 0.07 252);
+    color: var(--color-foreground);
     text-wrap: balance;
   }
   button,
@@ -203,6 +213,24 @@
   }
   ::selection {
     background: color-mix(in oklab, var(--color-primary) 20%, transparent);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .page-shell {
+    padding-top: 1.5rem;
+    padding-bottom: 6.5rem;
   }
 }
 

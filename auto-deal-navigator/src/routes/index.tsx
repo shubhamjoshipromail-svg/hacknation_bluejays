@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { AlertTriangle, CheckCircle2, Clock, PhoneCall, Search, ShieldCheck } from "lucide-react";
 import { api, useRunsData } from "@/hooks/use-runs-data";
 import type { SandboxIntakeRequest } from "../../../shared/contracts";
+import { GuidedIntake } from "@/components/guided-intake";
 
 export const Route = createFileRoute("/")({ component: Workspace });
 const money = (value: number | null | undefined) =>
@@ -243,10 +244,10 @@ function IntakeForm({ onCreated }: { onCreated: () => Promise<void> }) {
 
 function Workspace() {
   const data = useRunsData(),
-    [showForm, setShowForm] = useState(false);
+    [showForm, setShowForm] = useState(true);
   if (!data.negotiation || showForm)
     return (
-      <IntakeForm
+      <GuidedIntake
         onCreated={async () => {
           await data.refresh();
           setShowForm(false);
