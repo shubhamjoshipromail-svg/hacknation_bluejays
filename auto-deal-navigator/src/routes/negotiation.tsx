@@ -19,7 +19,7 @@ export const Route = createFileRoute("/negotiation")({
 
 function NegotiationPage() {
   const { quotes, policyDecisions, negotiation } = useRunsData();
-  const negotiationCall = negotiation?.calls.find((call) => call.phase === "NEGOTIATION"),
+  const negotiationCall = negotiation?.calls.filter((call) => call.phase === "NEGOTIATION").at(-1),
     targetProviderId = negotiationCall?.providerId,
     initial = targetProviderId
       ? quotes.find((q) => q.providerId === targetProviderId && q.originalOfferMinor !== undefined)

@@ -18,6 +18,8 @@ The AI never accepts, rejects, counters, shares sensitive information, books, pa
 - One sandbox discovery adapter: `provider-search-service.ts`
 - One automatic orchestrator: `workflow-service.ts`
 - One adaptive call-state engine: `call-intelligence.ts`
+- One server-controlled turn extractor, goal resolver, policy gate, and response planner: `conversation-controller.ts`
+- Provider opt-in and transcript retention enforcement: `provider-consent-service.ts`, `retention-service.ts`
 - One source-backed benchmark bridge: `benchmark-service.ts` -> `benchmarking/`
 - One React/TanStack frontend: `auto-deal-navigator/`
 
@@ -56,6 +58,10 @@ Voice calls require:
 - `SANDBOX_PROVIDER_NAME`
 - `SANDBOX_PROVIDER_NUMBER`
 
+Backend-controlled voice is feature flagged with `CONVERSATION_CONTROLLER=backend_custom_llm`. It additionally requires `OPENAI_API_KEY`, `CUSTOM_LLM_SHARED_SECRET`, and the matching ElevenLabs secret label in `ELEVENLABS_LLM_API_KEY_ENV_LABEL`. Provisioning pins the controller, prompt, and ElevenLabs agent versions to each call so stale callbacks cannot advance the workflow.
+
+`CALL_MODE=REAL` is blocked unless the destination is in the consent registry with active North Carolina opt-in evidence and is inside the configured local calling window. Provider consent can be administered with authenticated `POST /api/providers` and `POST /api/providers/:id/revoke` requests. Transcript and evidence text is purged after `CALL_DATA_RETENTION_DAYS` (30 by default), while non-content call metadata is retained.
+
 For compatibility, an existing `PERSONA_TO_NUMBER` is used only when `SANDBOX_PROVIDER_NUMBER` is absent. In either case it is treated explicitly as the sandbox provider, never as a customer fallback. Google Places and real provider discovery are not used.
 
 `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are used while configuring telephony. `OPENAI_API_KEY` and `OPENAI_MODEL` are optional and only used by the legacy report-prose fixture.
@@ -66,6 +72,7 @@ For compatibility, an existing `PERSONA_TO_NUMBER` is used only when `SANDBOX_PR
 - `GET /api/negotiations/current` - shared frontend/backend run contract
 - `POST /tools/:toolName` - authenticated ElevenLabs tools that write call-specific evidence, quote fields, terms, and outcomes
 - `POST /webhooks/elevenlabs` - authenticated final transcript ingestion, quote reconciliation, recommendation, and eligible negotiation kickoff
+- `POST /v1/chat/completions` - authenticated ElevenLabs Custom LLM streaming endpoint for backend-controlled turns
 
 The VIN is optional in sandbox intake. If supplied, it is passed as a private specification field and the voice agent says it only when the provider explicitly asks.
 
@@ -92,6 +99,8 @@ The lower-level endpoints below remain for validation, tests, and future provide
 The UI immediately shows the configured sandbox providers and queued/in-progress state. With providers two and three configured, quote calls run sequentially: each final webhook advances to the next provider. Comparison waits until every configured quote call reaches a terminal outcome. One negotiation callback may then target the highest comparable quote that has a lower verified competing quote; the final webhook recomputes the recommendation. Tool calls save evidence while each call is live.
 
 ## Adaptive conversation brain
+
+In backend-controlled mode, ElevenLabs handles speech transport while the server owns the workflow. Every provider turn is extracted into confidence-scored beliefs with exact transcript evidence, merged before planning, checked for contradictions and conditional quote scenarios, and resolved against a dynamic goal graph. The deterministic policy gate selects and authorizes negotiation leverage; the language model only verbalizes that action. Duplicate turns are idempotent, a processing failure requests one repeat before ending safely, and final transcript reconciliation salvages confirmed facts when a tool call or normal close is missing.
 
 The intake agent does not follow a mandatory question order. It starts with `get_call_state`, records every explicit fact from each provider answer with one `record_provider_answer` call, and chooses its next move from critical gaps, optional gaps, contradictions, and completion status returned by the backend. One answer can resolve multiple facts; repeated facts are idempotent; conflicting money requires an explicit correction before it replaces the prior value. Questions become conditional on intake and call state—for example, ADAS details are not required when the vehicle is known not to have a front camera.
 

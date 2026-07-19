@@ -122,6 +122,38 @@ export const CallIntelligenceFact = z.object({
   updatedAt: IsoDate,
 });
 export type CallIntelligenceFact = z.infer<typeof CallIntelligenceFact>;
+export const BeliefCandidate = z.object({
+  value: z.string().nullable(),
+  amountMinor: Money.nullable(),
+  itemStatus: LineItemStatus.nullable(),
+  confidence: z.number().min(0).max(1),
+  evidenceTurnIds: z.array(z.string()),
+  scope: z.array(z.string()).default([]),
+  accepted: z.boolean(),
+});
+export const BeliefFact = z.object({
+  key: CallFactKey,
+  status: CallFactStatus,
+  value: z.string().nullable(),
+  amountMinor: Money.nullable(),
+  itemStatus: LineItemStatus.nullable(),
+  confidence: z.number().min(0).max(1),
+  evidenceTurnIds: z.array(z.string()),
+  scope: z.array(z.string()).default([]),
+  candidates: z.array(BeliefCandidate).default([]),
+  confirmationRequired: z.boolean().default(false),
+  updatedAt: IsoDate,
+});
+export type BeliefFact = z.infer<typeof BeliefFact>;
+export const DynamicGoal = z.object({
+  goalId: z.string(),
+  key: CallFactKey,
+  scenarioId: z.string().nullable().default(null),
+  priority: z.enum(["CRITICAL", "OPTIONAL"]),
+  status: z.enum(["OPEN", "RESOLVED", "WAIVED", "BLOCKED"]),
+  reason: z.string(),
+});
+export type DynamicGoal = z.infer<typeof DynamicGoal>;
 export const CallContradiction = z.object({
   contradictionId: z.string(), key: CallFactKey, previousValue: z.string(), proposedValue: z.string(),
   resolved: z.boolean(), createdAt: IsoDate, resolvedAt: IsoDate.nullable(),
@@ -129,6 +161,8 @@ export const CallContradiction = z.object({
 export type CallContradiction = z.infer<typeof CallContradiction>;
 export const CallIntelligence = z.object({
   facts: z.array(CallIntelligenceFact).default([]),
+  beliefs: z.array(BeliefFact).default([]),
+  goals: z.array(DynamicGoal).default([]),
   askedTopics: z.array(CallFactKey).default([]),
   contradictions: z.array(CallContradiction).default([]),
   lastProviderTurnId: z.string().nullable().default(null),
@@ -184,8 +218,17 @@ export const Provider = z.object({
   name: z.string(),
   phoneNumber: z.string(),
   locationLabel: z.string(),
-  source: z.literal("SANDBOX_CONFIG"),
+  source: z.enum(["SANDBOX_CONFIG", "CONSENT_REGISTRY"]),
   verified: z.boolean(),
+  consent: z.object({
+    status: z.enum(["OPTED_IN", "REVOKED", "EXPIRED"]),
+    jurisdiction: z.string(),
+    source: z.string(),
+    capturedAt: IsoDate,
+    expiresAt: IsoDate.nullable(),
+    evidenceRef: z.string(),
+  }).optional(),
+  doNotCall: z.boolean().optional(),
 });
 export type Provider = z.infer<typeof Provider>;
 
@@ -197,14 +240,38 @@ export const NegotiationCall = z.object({
   transcript:z.array(z.object({turnId:z.string(),speaker:z.enum(["AGENT","SHOP"]),text:z.string(),timeSeconds:z.number().nonnegative().nullable()})),
   draft:z.object({lineItems:z.array(QuoteLineItem),statedTotalMinor:Money.nullable(),terms:z.record(z.string(),z.unknown())}).nullable().default(null),
   intelligence:CallIntelligence.nullable().default(null),
+  attemptNumber:z.number().int().positive().default(1),
+  supersedesCallId:z.string().nullable().default(null),
+  isActiveAttempt:z.boolean().default(true),
+  controllerMode:z.enum(["HOSTED_TOOLS","BACKEND_CUSTOM_LLM"]).default("HOSTED_TOOLS"),
+  deployment:z.object({controllerVersion:z.string(),agentVersion:z.string(),extractorPromptVersion:z.string(),plannerPromptVersion:z.string()}).nullable().default(null),
+  consecutivePipelineFailures:z.number().int().nonnegative().default(0),
+  retentionPurgedAt:IsoDate.nullable().default(null),
 });
 export type NegotiationCall = z.infer<typeof NegotiationCall>;
 
+export const QuoteScenario = z.object({
+  scenarioId:z.string(),providerId:z.string(),callId:z.string(),attemptNumber:z.number().int().positive(),
+  label:z.string(),conditions:z.array(z.string()),totalMinor:Money.nullable(),taxStatus:z.enum(["INCLUDED","EXCLUDED","UNKNOWN"]),
+  includedCategories:z.array(FeeCategory),excludedCategories:z.array(FeeCategory),confidence:z.number().min(0).max(1),
+  evidenceTurnIds:z.array(z.string()),readiness:z.enum(["COMPARABLE","CONDITIONALLY_COMPARABLE","NON_COMPARABLE"]),active:z.boolean(),
+});
+export type QuoteScenario = z.infer<typeof QuoteScenario>;
+
+export const NegotiationStrategyState = z.object({
+  targetProviderId:z.string(),initialOfferMinor:Money,bestVerifiedAlternativeMinor:Money.nullable(),
+  attemptedTactics:z.array(z.enum(["GENERAL_FLEXIBILITY","VERIFIED_PRICE_MATCH","SCHEDULE_TRADEOFF","FEE_REDUCTION"])),
+  availableTactics:z.array(z.enum(["GENERAL_FLEXIBILITY","VERIFIED_PRICE_MATCH","SCHEDULE_TRADEOFF","FEE_REDUCTION"])),
+  maxAttempts:z.number().int().min(1).max(3).default(3),finalResponse:z.boolean().default(false),
+}).nullable();
+
 export const Negotiation = z.object({
-  negotiationId: z.string(), mode:z.literal("SANDBOX").default("SANDBOX"), state: NegotiationState, intake: Intake,
+  negotiationId: z.string(), mode:z.enum(["SANDBOX","REAL"]).default("SANDBOX"), state: NegotiationState, intake: Intake,
   benchmark: Benchmark, strategy: Strategy, approvals: z.array(Approval), calls:z.array(NegotiationCall).default([]),
   providers:z.array(Provider).default([]), evidence:z.array(ProvenanceAnchor).default([]), verifiedFacts:z.array(VerifiedFact).default([]), policyDecisions:z.array(PolicyDecision).default([]),
   benchmarkContext:BenchmarkContext.nullable().default(null),
+  quoteScenarios:z.array(QuoteScenario).default([]),
+  negotiationStrategy:NegotiationStrategyState.default(null),
   offers: z.array(QuoteOffer), callIds: z.array(z.string()), redFlags: z.array(z.object({ code: z.string(), severity: z.enum(["LOW", "MEDIUM", "HIGH"]), detail: z.string() })),
   recommendation: ActionRecommendation.nullable(), followUps: z.array(FollowUp), events: z.array(NegotiationEvent),
   createdAt: IsoDate, updatedAt: IsoDate,
