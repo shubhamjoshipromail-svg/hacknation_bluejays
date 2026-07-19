@@ -9,25 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RecommendationRouteImport } from './routes/recommendation'
-import { Route as NegotiationRouteImport } from './routes/negotiation'
-import { Route as CompareRouteImport } from './routes/compare'
-import { Route as CallsRouteImport } from './routes/calls'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CallsRouteImport } from './routes/calls'
+import { Route as CompareRouteImport } from './routes/compare'
+import { Route as NegotiationRouteImport } from './routes/negotiation'
+import { Route as RecommendationRouteImport } from './routes/recommendation'
 
-const RecommendationRoute = RecommendationRouteImport.update({
-  id: '/recommendation',
-  path: '/recommendation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NegotiationRoute = NegotiationRouteImport.update({
-  id: '/negotiation',
-  path: '/negotiation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompareRoute = CompareRouteImport.update({
-  id: '/compare',
-  path: '/compare',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CallsRoute = CallsRouteImport.update({
@@ -35,9 +25,19 @@ const CallsRoute = CallsRouteImport.update({
   path: '/calls',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CompareRoute = CompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NegotiationRoute = NegotiationRouteImport.update({
+  id: '/negotiation',
+  path: '/negotiation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecommendationRoute = RecommendationRouteImport.update({
+  id: '/recommendation',
+  path: '/recommendation',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -87,25 +87,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/recommendation': {
-      id: '/recommendation'
-      path: '/recommendation'
-      fullPath: '/recommendation'
-      preLoaderRoute: typeof RecommendationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/negotiation': {
-      id: '/negotiation'
-      path: '/negotiation'
-      fullPath: '/negotiation'
-      preLoaderRoute: typeof NegotiationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compare': {
-      id: '/compare'
-      path: '/compare'
-      fullPath: '/compare'
-      preLoaderRoute: typeof CompareRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calls': {
@@ -115,11 +101,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CallsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/negotiation': {
+      id: '/negotiation'
+      path: '/negotiation'
+      fullPath: '/negotiation'
+      preLoaderRoute: typeof NegotiationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recommendation': {
+      id: '/recommendation'
+      path: '/recommendation'
+      fullPath: '/recommendation'
+      preLoaderRoute: typeof RecommendationRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

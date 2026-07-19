@@ -24,6 +24,16 @@ function NegotiationPage() {
     QUOTES.find((q) => q.quoteId === "q_clearview") ??
     QUOTES.find((q) => q.revisedOfferMinor !== undefined) ??
     QUOTES[0];
+  if (!primary)
+    return (
+      <div className="px-6 py-10 md:px-10">
+        <h1 className="text-3xl font-semibold">Negotiation trail</h1>
+        <div className="panel mt-6 p-8 text-sm text-muted-foreground">
+          Negotiation leverage is not available yet. First collect at least two reconciled,
+          comparable quotes; callback and declined calls remain visible under Live Calls.
+        </div>
+      </div>
+    );
   const savings = (primary.originalOfferMinor ?? 0) - (primary.revisedOfferMinor ?? 0);
 
   const timeline = [
