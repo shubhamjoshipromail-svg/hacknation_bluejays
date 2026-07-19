@@ -69,10 +69,39 @@ export const Intake = z.object({
   deadline: IsoDate.nullable().default(null),
   supportingContext: z.string().max(5_000).default(""),
   vehicle: z.object({ year: z.number().int().min(1980).max(2100), make: z.string().min(1), model: z.string().min(1), vin: z.string().length(17).nullable().default(null), frontCamera: z.boolean().default(false) }),
+  damage: z.object({
+    service: z.enum(["REPAIR", "REPLACEMENT", "NOT_SURE"]).default("NOT_SURE"),
+    type: z.enum(["CHIP", "CRACK", "SHATTERED", "OTHER", "NOT_SURE"]).default("NOT_SURE"),
+    location: z.enum(["DRIVER_SIDE", "PASSENGER_SIDE", "CENTER", "EDGE", "MULTIPLE", "NOT_SURE"]).default("NOT_SURE"),
+    drivable: z.boolean().default(true),
+  }).default({}),
+  features: z.array(z.enum(["FRONT_CAMERA", "RAIN_SENSOR", "HEATED_GLASS", "HUD", "NOT_SURE"])).default([]),
+  insuranceInvolved: z.boolean().default(false),
+  schedulePreference: z.string().max(500).nullable().default(null),
   postalCode: z.string().regex(/^\d{5}$/),
   sources: z.array(z.object({ kind: z.enum(["USER", "VOICE_INTERVIEW", "DOCUMENT"]), label: z.string(), addedAt: IsoDate })),
 });
 export type Intake = z.infer<typeof Intake>;
+
+export const SandboxIntake = z.object({
+  vehicle: z.object({
+    year: z.number().int().min(1980).max(2100),
+    make: z.string().trim().min(1).max(100),
+    model: z.string().trim().min(1).max(100),
+    vin: z.string().trim().toUpperCase().regex(/^[A-HJ-NPR-Z0-9]{17}$/).nullable().default(null),
+  }),
+  damage: z.object({
+    service: z.enum(["REPAIR", "REPLACEMENT", "NOT_SURE"]),
+    type: z.enum(["CHIP", "CRACK", "SHATTERED", "OTHER", "NOT_SURE"]),
+    location: z.enum(["DRIVER_SIDE", "PASSENGER_SIDE", "CENTER", "EDGE", "MULTIPLE", "NOT_SURE"]),
+    drivable: z.boolean().default(true),
+  }),
+  features: z.array(z.enum(["FRONT_CAMERA", "RAIN_SENSOR", "HEATED_GLASS", "HUD", "NOT_SURE"])).default([]),
+  postalCode: z.string().regex(/^\d{5}$/),
+  insuranceInvolved: z.boolean().default(false),
+  schedulePreference: z.string().trim().max(500).nullable().default(null),
+});
+export type SandboxIntake = z.infer<typeof SandboxIntake>;
 
 export const Benchmark = z.object({
   lowMinor: Money, typicalMinor: Money, highMinor: Money,
@@ -103,11 +132,29 @@ export const Approval = z.object({
 });
 export const FollowUp = z.object({ followUpId: z.string(), idempotencyKey: z.string(), dueAt: IsoDate, note: z.string().min(1), status: z.enum(["OPEN", "DONE"]), createdAt: IsoDate });
 export const NegotiationEvent = z.object({ eventId: z.string(), type: z.string(), detail: z.string(), at: IsoDate });
-export const NegotiationCall = z.object({callId:z.string(),providerId:z.string(),conversationId:z.string(),status:z.enum(["IN_PROGRESS","COMPLETE","FAILED"]),outcome:z.enum(["QUOTED","CALLBACK_REQUIRED","DECLINED","DROPPED"]).nullable(),reason:z.string().nullable(),startedAt:IsoDate,endedAt:IsoDate.nullable(),transcript:z.array(z.object({turnId:z.string(),speaker:z.enum(["AGENT","SHOP"]),text:z.string(),timeSeconds:z.number().nonnegative().nullable()}))});
+export const Provider = z.object({
+  providerId: z.string(),
+  name: z.string(),
+  phoneNumber: z.string(),
+  locationLabel: z.string(),
+  source: z.literal("SANDBOX_CONFIG"),
+  verified: z.boolean(),
+});
+export type Provider = z.infer<typeof Provider>;
+
+export const NegotiationCall = z.object({
+  callId:z.string(),providerId:z.string(),conversationId:z.string().nullable(),twilioCallSid:z.string().nullable().default(null),
+  phase:z.enum(["QUOTE_COLLECTION","NEGOTIATION"]).default("QUOTE_COLLECTION"),
+  status:z.enum(["QUEUED","IN_PROGRESS","COMPLETE","FAILED"]),
+  outcome:z.enum(["QUOTED","CALLBACK_REQUIRED","DECLINED","DROPPED"]).nullable(),reason:z.string().nullable(),startedAt:IsoDate,endedAt:IsoDate.nullable(),
+  transcript:z.array(z.object({turnId:z.string(),speaker:z.enum(["AGENT","SHOP"]),text:z.string(),timeSeconds:z.number().nonnegative().nullable()})),
+  draft:z.object({lineItems:z.array(QuoteLineItem),statedTotalMinor:Money.nullable(),terms:z.record(z.string(),z.unknown())}).nullable().default(null),
+});
 
 export const Negotiation = z.object({
-  negotiationId: z.string(), state: NegotiationState, intake: Intake,
+  negotiationId: z.string(), mode:z.literal("SANDBOX").default("SANDBOX"), state: NegotiationState, intake: Intake,
   benchmark: Benchmark, strategy: Strategy, approvals: z.array(Approval), calls:z.array(NegotiationCall).default([]),
+  providers:z.array(Provider).default([]), evidence:z.array(ProvenanceAnchor).default([]), verifiedFacts:z.array(VerifiedFact).default([]), policyDecisions:z.array(PolicyDecision).default([]),
   offers: z.array(QuoteOffer), callIds: z.array(z.string()), redFlags: z.array(z.object({ code: z.string(), severity: z.enum(["LOW", "MEDIUM", "HIGH"]), detail: z.string() })),
   recommendation: ActionRecommendation.nullable(), followUps: z.array(FollowUp), events: z.array(NegotiationEvent),
   createdAt: IsoDate, updatedAt: IsoDate,

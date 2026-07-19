@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { Intake, Negotiation, QuoteOffer, type ActionRecommendation, type Benchmark, type Negotiation as NegotiationType, type Strategy } from "./domain.js";
+import { Intake, Negotiation, QuoteOffer, SandboxIntake, type ActionRecommendation, type Benchmark, type Negotiation as NegotiationType, type Provider, type SandboxIntake as SandboxIntakeType, type Strategy } from "./domain.js";
 import { applyRedFlags } from "./policy.js";
 import { mutate, store } from "./store.js";
 import { decodeVin } from "./vin-service.js";
+import type { RunView } from "./shared/contracts.js";
 
 const now = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}_${randomUUID()}`;
@@ -22,9 +23,29 @@ function get(idValue: string) { const n = store.negotiations[idValue]; if (!n) t
 
 export function createNegotiation(input: unknown) {
   const intake = Intake.parse(input); const b = benchmark(); const createdAt = now();
-  const n: NegotiationType = { negotiationId: id("neg"), state: "intake", intake, benchmark: b, strategy: strategyFor(intake, b), approvals: [],calls:[], offers: [], callIds: [], redFlags: [], recommendation: null, followUps: [], events: [], createdAt, updatedAt: createdAt };
+  const n: NegotiationType = { negotiationId: id("neg"), mode:"SANDBOX", state: "intake", intake, benchmark: b, strategy: strategyFor(intake, b), approvals: [],calls:[], providers:[], evidence:[], verifiedFacts:[], policyDecisions:[], offers: [], callIds: [], redFlags: [], recommendation: null, followUps: [], events: [], createdAt, updatedAt: createdAt };
   event(n, "NEGOTIATION_CREATED", "Draft intake created");
   mutate(s => { s.negotiations[n.negotiationId] = n; s.currentNegotiationId = n.negotiationId; });
+  return structuredClone(n);
+}
+export function createSandboxNegotiation(input:unknown,provider:Provider){
+  const request=SandboxIntake.parse(input),createdAt=now();
+  const serviceText=request.damage.service==="NOT_SURE"?"windshield repair or replacement assessment":`windshield ${request.damage.service.toLowerCase()}`;
+  const intake=Intake.parse({
+    negotiationType:"auto_glass",objective:`Find the best ${serviceText} option`,
+    currentSituation:`${request.damage.type.toLowerCase().replaceAll("_"," ")} damage at ${request.damage.location.toLowerCase().replaceAll("_"," ")}; ${request.damage.drivable?"vehicle is drivable":"vehicle is not drivable"}.`,
+    priorities:["safe complete service","itemized all-in price","warranty"],constraints:["no booking without approval","written confirmation"],
+    desiredOutcomeMinor:null,walkAwayMinor:null,deadline:null,supportingContext:"",vehicle:{...request.vehicle,frontCamera:request.features.includes("FRONT_CAMERA")},
+    damage:request.damage,features:request.features,postalCode:request.postalCode,insuranceInvolved:request.insuranceInvolved,schedulePreference:request.schedulePreference,
+    sources:[{kind:"USER",label:"Sandbox windshield intake",addedAt:createdAt}],
+  });
+  const b=benchmark();
+  const n:NegotiationType={negotiationId:id("neg"),mode:"SANDBOX",state:"calls_ready",intake,benchmark:b,strategy:strategyFor(intake,b),
+    approvals:[{approvalId:id("approval"),action:"CONFIRM_SPEC",approved:true,details:"Confirmed by Find and call providers submission",createdAt},{approvalId:id("approval"),action:"START_CALLS",approved:true,details:"Sandbox provider calls authorized by submission",createdAt}],
+    calls:[],providers:[provider],evidence:[],verifiedFacts:[],policyDecisions:[],offers:[],callIds:[],redFlags:[],recommendation:null,followUps:[],events:[],createdAt,updatedAt:createdAt};
+  event(n,"NEGOTIATION_CREATED","Sandbox intake submitted and provider calling authorized");
+  event(n,"PROVIDER_DISCOVERED",`${provider.name} discovered from explicit sandbox configuration`);
+  mutate(s=>{s.negotiations[n.negotiationId]=n;s.currentNegotiationId=n.negotiationId});
   return structuredClone(n);
 }
 export async function createNegotiationFromVin(input:unknown){const request=Intake.pick({objective:true,currentSituation:true,priorities:true,constraints:true,desiredOutcomeMinor:true,walkAwayMinor:true,deadline:true,supportingContext:true,postalCode:true}).extend({vin:z.string()}).parse(input);const decoded=await decodeVin(request.vin);return createNegotiation({...request,negotiationType:"auto_glass",vehicle:{year:decoded.year,make:decoded.make,model:decoded.model,vin:decoded.vin,frontCamera:decoded.adasLikely},sources:[{kind:"USER",label:"Negotiation preferences",addedAt:now()},{kind:"DOCUMENT",label:`${decoded.source.label}: ${decoded.adasEvidence.join("; ")||"vehicle identity only; ADAS not established"}`,addedAt:decoded.source.decodedAt}]})}
@@ -38,7 +59,10 @@ export function recordApproval(negotiationId: string, action: NegotiationType["a
   return mutate(() => { const n = get(negotiationId); if (n.approvals.some(a => a.action === action)) return structuredClone(n); n.approvals.push({ approvalId: id("approval"), action, approved: true, details, createdAt: now() }); if (action === "CONFIRM_SPEC") n.state = "strategy_ready"; if (action === "START_CALLS") n.state = "calls_ready"; event(n, "APPROVAL_RECORDED", action); return structuredClone(n); });
 }
 export function assertCallsApproved(negotiationId: string) { const n = get(negotiationId); if (!n.approvals.some(a => a.action === "START_CALLS")) throw new Error("explicit START_CALLS approval is required"); return n; }
-export function recordCall(negotiationId:string,input:{callId:string;providerId:string;conversationId:string;status:"IN_PROGRESS"|"COMPLETE"|"FAILED";outcome:"QUOTED"|"CALLBACK_REQUIRED"|"DECLINED"|"DROPPED"|null;reason:string|null;startedAt?:string;endedAt?:string|null;transcript:Array<{turnId?:string;role?:"agent"|"user";message?:string|null;time_in_call_secs?:number}>}){return mutate(()=>{const n=get(negotiationId);const call={callId:input.callId,providerId:input.providerId,conversationId:input.conversationId,status:input.status,outcome:input.outcome,reason:input.reason,startedAt:input.startedAt??now(),endedAt:input.endedAt??(input.status==="IN_PROGRESS"?null:now()),transcript:input.transcript.flatMap((t,index)=>t.message?[{turnId:t.turnId??`${input.conversationId}_${index}`,speaker:t.role==="agent"?"AGENT" as const:"SHOP" as const,text:t.message,timeSeconds:t.time_in_call_secs??null}]:[])};const index=n.calls.findIndex(c=>c.callId===input.callId);if(index>=0)n.calls[index]=call;else n.calls.push(call);if(!n.callIds.includes(input.callId))n.callIds.push(input.callId);if(input.status==="IN_PROGRESS")n.state="call_in_progress";else if(input.outcome==="CALLBACK_REQUIRED")n.state="follow_up_required";else if(input.outcome==="QUOTED")n.state="offer_received";else n.state="calls_ready";event(n,"CALL_RECORDED",`${input.providerId}: ${input.outcome??input.status}`);return structuredClone(n)})}
+export function recordCall(negotiationId:string,input:{callId:string;providerId:string;conversationId:string|null;twilioCallSid?:string|null;phase?:"QUOTE_COLLECTION"|"NEGOTIATION";status:"QUEUED"|"IN_PROGRESS"|"COMPLETE"|"FAILED";outcome:"QUOTED"|"CALLBACK_REQUIRED"|"DECLINED"|"DROPPED"|null;reason:string|null;startedAt?:string;endedAt?:string|null;transcript?:Array<{turnId?:string;role?:"agent"|"user";message?:string|null;text?:string|null;time_in_call_secs?:number}>}){return mutate(()=>{const n=get(negotiationId),existing=n.calls.find(c=>c.callId===input.callId);const transcript=(input.transcript??[]).flatMap((t,index)=>{const text=t.message??t.text;return text?[{turnId:t.turnId??`${input.conversationId??input.callId}_${index}`,speaker:t.role==="agent"?"AGENT" as const:"SHOP" as const,text,timeSeconds:t.time_in_call_secs??null}]:[]});const call={callId:input.callId,providerId:input.providerId,conversationId:input.conversationId??existing?.conversationId??null,twilioCallSid:input.twilioCallSid??existing?.twilioCallSid??null,phase:input.phase??existing?.phase??"QUOTE_COLLECTION" as const,status:input.status,outcome:input.outcome,reason:input.reason,startedAt:input.startedAt??existing?.startedAt??now(),endedAt:input.endedAt??(input.status==="QUEUED"||input.status==="IN_PROGRESS"?null:now()),transcript:transcript.length?transcript:existing?.transcript??[],draft:existing?.draft??null};const index=n.calls.findIndex(c=>c.callId===input.callId);if(index>=0)n.calls[index]=call;else n.calls.push(call);if(!n.callIds.includes(input.callId))n.callIds.push(input.callId);if(input.status==="QUEUED"||input.status==="IN_PROGRESS")n.state="call_in_progress";else if(input.outcome==="CALLBACK_REQUIRED")n.state="follow_up_required";else if(input.outcome==="QUOTED")n.state="offer_received";else n.state="calls_ready";event(n,"CALL_RECORDED",`${input.providerId}: ${input.outcome??input.status}`);return structuredClone(n)})}
+export function findNegotiationByCallId(callId:string){for(const n of Object.values(store.negotiations)){if(n.calls.some(c=>c.callId===callId))return n}throw new Error("call not found")}
+export function getCallContext(callId:string,providerId?:string){const n=findNegotiationByCallId(callId),call=n.calls.find(c=>c.callId===callId)!;if(providerId&&call.providerId!==providerId)throw new Error("provider does not match call");const provider=n.providers.find(p=>p.providerId===call.providerId);if(!provider)throw new Error("provider not found for call");return{negotiation:n,call,provider}}
+export function getCallContextByConversationId(conversationId:string,providerId?:string){for(const n of Object.values(store.negotiations)){const call=n.calls.find(c=>c.conversationId===conversationId);if(!call)continue;if(providerId&&call.providerId!==providerId)throw new Error("provider does not match conversation");const provider=n.providers.find(p=>p.providerId===call.providerId);if(!provider)throw new Error("provider not found for conversation");return{negotiation:n,call,provider}}throw new Error("conversation not found")}
 export function attachOffer(negotiationId: string, offerInput: unknown) {
   const offer = QuoteOffer.parse(offerInput);
   return mutate(() => { const n = assertCallsApproved(negotiationId); const others = n.offers.filter(o => o.stage === "INITIAL" && o.totals.statedAllInMinor != null).map(o => o.totals.statedAllInMinor!); offer.redFlags = applyRedFlags(offer, others, n.intake.vehicle.frontCamera); n.offers.push(offer); if (!n.callIds.includes(offer.callId)) n.callIds.push(offer.callId); n.redFlags = n.offers.flatMap(o => o.redFlags.map(f => ({ code: f.code, severity: f.code.includes("OMITTED") || f.code.includes("MISMATCH") ? "HIGH" as const : "MEDIUM" as const, detail: f.detail })));refreshBenchmark(n); n.state = "offer_received"; event(n, "OFFER_RECORDED", `${offer.providerId} offer version ${offer.offerVersion}`); return structuredClone(n); });
@@ -51,6 +75,6 @@ export function addFollowUp(negotiationId: string, input: { idempotencyKey: stri
   return mutate(() => { const n = get(negotiationId); const existing = n.followUps.find(f => f.idempotencyKey === input.idempotencyKey); if (existing) return structuredClone(n); n.followUps.push({ followUpId: id("followup"), idempotencyKey: input.idempotencyKey, dueAt: new Date(input.dueAt).toISOString(), note: input.note, status: "OPEN", createdAt: now() }); n.state = "follow_up_required"; event(n, "FOLLOW_UP_CREATED", input.note); return structuredClone(n); });
 }
 export function closeNegotiation(negotiationId: string, outcome: "accepted" | "walked_away" | "closed") { return mutate(() => { const n = get(negotiationId); if (outcome === "accepted" && !n.approvals.some(a => a.action === "ACCEPT_OFFER")) throw new Error("explicit ACCEPT_OFFER approval is required"); n.state = outcome; event(n, "NEGOTIATION_CLOSED", outcome); return structuredClone(n); }); }
-export function getNegotiation(negotiationId: string) { return structuredClone(get(negotiationId)); }
+export function getNegotiation(negotiationId: string):RunView { return structuredClone(get(negotiationId)); }
 export function currentNegotiation() { return store.currentNegotiationId ? getNegotiation(store.currentNegotiationId) : null; }
 export function parseNegotiation(value: unknown) { return Negotiation.parse(value); }
