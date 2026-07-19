@@ -167,7 +167,11 @@ function adapt(n: NegotiationData) {
 export async function api(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "content-type": "application/json",
+      "ngrok-skip-browser-warning": "true",
+      ...(init?.headers ?? {}),
+    },
   });
   const body = await response.json().catch(() => ({ error: "Invalid server response" }));
   if (!response.ok) throw new Error(body.error ?? `Request failed (${response.status})`);
