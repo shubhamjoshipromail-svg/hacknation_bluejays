@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { formatMoney, totalMinor, hasUnknown, type Quote, type LineItem } from "@/lib/mock-data";
+import {
+  formatMoney,
+  quoteTotalMinor,
+  hasUnknown,
+  type Quote,
+  type LineItem,
+} from "@/lib/mock-data";
 import { useRunsData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
@@ -178,7 +184,7 @@ function ComparePage() {
                     </div>
                   </td>
                   {QUOTES.map((q) => {
-                    const total = totalMinor(q.lineItems);
+                    const total = quoteTotalMinor(q);
                     const unknown = hasUnknown(q.lineItems);
                     return (
                       <td key={q.quoteId} className="px-4 py-4 text-right align-top">
