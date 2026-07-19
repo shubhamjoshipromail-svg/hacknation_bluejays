@@ -48,14 +48,14 @@ function RecommendationPage() {
   const winnerQuote = QUOTES.find((q) => q.quoteId === winner.quoteId) ?? QUOTES[0];
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-10">
+    <div className="page-shell">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 05 · Recommendation
         </div>
-        <div className="mt-3 flex items-end justify-between gap-4">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Best deal</h1>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Best deal</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Ranked by price, completeness, trust, and logistics. Every number is backed by a
               transcript excerpt.
@@ -71,12 +71,14 @@ function RecommendationPage() {
           className="absolute inset-0 opacity-70 pointer-events-none"
           style={{ background: "var(--gradient-hero)" }}
         />
-        <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+        <div className="relative grid grid-cols-1 gap-7 p-5 sm:p-7 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
               <Trophy className="h-3 w-3" /> Winner · rank 01
             </div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">{winnerQuote.provider}</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+              {winnerQuote.provider}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">{winnerQuote.location}</p>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-foreground/90">
               {winner.explanation}
@@ -145,7 +147,7 @@ function RankRow({
   const q = quotes.find((x) => x.quoteId === r.quoteId) ?? quotes[0];
   const total = totalMinor(q.lineItems);
   return (
-    <article className="panel p-5">
+    <article className="panel p-5 transition-transform duration-200 hover:-translate-y-0.5">
       <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto] gap-5 items-start">
         <div className="flex items-center gap-3">
           <div
@@ -232,10 +234,14 @@ function EvidenceDrawer({
     <div
       className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm"
       onClick={onClose}
+      role="presentation"
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
+        className="drawer-panel h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Evidence for ${ctx.label}`}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
@@ -247,7 +253,11 @@ function EvidenceDrawer({
             </h3>
             <div className="mt-0.5 text-[11px] text-muted-foreground">{q.provider}</div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            aria-label="Close evidence"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </header>

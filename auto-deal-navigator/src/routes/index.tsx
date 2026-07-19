@@ -34,23 +34,25 @@ function Field({
 function JobSpecPage() {
   const { jobSpec: JOB_SPEC } = useRunsData();
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8 md:px-10 md:py-10">
+    <div className="page-shell max-w-6xl">
       <header className="mb-8">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 01 · Job Spec
         </div>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Confirmed job specification</h1>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
+          Confirmed job specification
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           A single hashed source of truth. Every provider call, quote line, and negotiation tactic
           is anchored to this spec.
         </p>
       </header>
 
-      <div className="panel overflow-hidden">
+      <div className="panel overflow-hidden ring-1 ring-white/[0.015]">
         {/* Status header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-panel-2/60 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-panel-2/55 px-5 py-5 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success/15 ring-1 ring-success/40">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/12 ring-1 ring-success/35 shadow-[0_0_24px_-10px_var(--color-success)]">
               <CheckCircle2 className="h-4 w-4 text-success" />
             </div>
             <div>
@@ -139,7 +141,7 @@ function JobSpecPage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-md border border-border bg-panel/50 px-4 py-3 text-[11px] text-muted-foreground">
+      <div className="mt-6 rounded-lg border border-border/70 bg-panel/45 px-4 py-3.5 text-[11px] leading-relaxed text-muted-foreground shadow-[inset_3px_0_0_var(--color-primary)]">
         <span className="mono text-primary">provenance:</span> every field on this spec carries a
         source tag. Downstream agents can only cite claims traceable to{" "}
         <span className="mono">VOICE</span>, <span className="mono">DOCUMENT</span>, or{" "}
