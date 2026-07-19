@@ -1,0 +1,723 @@
+{
+  "runId": "eval_2026-07-19T08-43-15-213Z_4f717db1",
+  "startedAt": "2026-07-19T08:43:15.213Z",
+  "commit": "0df3b61a84976f4489b0df726979b7257e9d348f",
+  "promptHash": "43d32eab0ac85cea",
+  "evaluatorVersion": "1.0.0",
+  "deterministicAcrossTwoRuns": true,
+  "reports": [
+    {
+      "scenarioId": "PRICE-01",
+      "scenarioVersion": 1,
+      "name": "Transparent itemized all-in quote",
+      "driver": "adaptive",
+      "seeded": false,
+      "outcome": "QUOTED",
+      "reason": "provider confirmed the usable all-in quote",
+      "statedTotalMinor": 99800,
+      "reconciliation": "MATCH",
+      "providerTurns": 2,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "call ends QUOTED",
+          "observed": "QUOTED (provider confirmed the usable all-in quote)",
+          "evidence": [
+            "call_eval_PRICE-01"
+          ]
+        },
+        {
+          "check_id": "QUOTE-TOTAL-ACCURATE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "stated all-in total 99800 minor (private truth)",
+          "observed": "stated 99800, computed 99800",
+          "evidence": [
+            "quote_cc75309a-ce75-43a0-aea3-257be837c575"
+          ]
+        },
+        {
+          "check_id": "QUOTE-RECONCILES",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "reconciliation MATCH",
+          "observed": "MATCH",
+          "evidence": [
+            "quote_cc75309a-ce75-43a0-aea3-257be837c575"
+          ]
+        },
+        {
+          "check_id": "FACT-SERVICE_RECOMMENDATION",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "SERVICE_RECOMMENDATION explicitly resolved from provider answers",
+          "observed": "KNOWN \"replacement\"",
+          "evidence": [
+            "prov_a0232f4b-6973-4508-80fe-5f49363dd73f"
+          ]
+        },
+        {
+          "check_id": "FACT-TOTAL",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TOTAL explicitly resolved from provider answers",
+          "observed": "KNOWN \"all-in total\" (99800 minor)",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        },
+        {
+          "check_id": "FACT-TAX",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TAX explicitly resolved from provider answers",
+          "observed": "KNOWN \"sales tax\" (4800 minor)",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        },
+        {
+          "check_id": "FACT-ADAS_INCLUDED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "ADAS_INCLUDED explicitly resolved from provider answers",
+          "observed": "KNOWN \"required and included\"",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        },
+        {
+          "check_id": "FACT-GLASS_TYPE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "GLASS_TYPE explicitly resolved from provider answers",
+          "observed": "KNOWN \"OEE\"",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        },
+        {
+          "check_id": "FACT-WARRANTY",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "WARRANTY explicitly resolved from provider answers",
+          "observed": "KNOWN \"lifetime workmanship\"",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state recommendation_ready, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        },
+        {
+          "check_id": "PROVENANCE-COMPLETE",
+          "status": "PASS",
+          "severity": "major",
+          "expected": "every quote line item anchors to a transcript turn",
+          "observed": "3 line items checked",
+          "evidence": [
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266",
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266",
+            "prov_fbaff859-9ca3-4032-a894-39998d5eb266"
+          ]
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_PRICE-01_1",
+          "speaker": "SHOP",
+          "text": "With a crack that long across the center, that windshield needs a full replacement."
+        },
+        {
+          "turnId": "turn_PRICE-01_2",
+          "speaker": "SHOP",
+          "text": "All-in cash it's nine hundred ninety-eight: eight hundred for glass and install, one fifty for the dynamic camera calibration, and forty-eight dollars tax. That's OEE glass with a lifetime workmanship warranty, everything included."
+        }
+      ]
+    },
+    {
+      "scenarioId": "PRICE-02",
+      "scenarioVersion": 1,
+      "name": "Hidden calibration fee behind a headline price",
+      "driver": "adaptive",
+      "seeded": false,
+      "outcome": "QUOTED",
+      "reason": "provider confirmed the usable all-in quote",
+      "statedTotalMinor": 62700,
+      "reconciliation": "MATCH",
+      "providerTurns": 8,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "call ends QUOTED",
+          "observed": "QUOTED (provider confirmed the usable all-in quote)",
+          "evidence": [
+            "call_eval_PRICE-02"
+          ]
+        },
+        {
+          "check_id": "QUOTE-TOTAL-ACCURATE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "stated all-in total 62700 minor (private truth)",
+          "observed": "stated 62700, computed 62700",
+          "evidence": [
+            "quote_1de9457e-173b-4edf-b568-b1a607fabcb4"
+          ]
+        },
+        {
+          "check_id": "QUOTE-RECONCILES",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "reconciliation MATCH",
+          "observed": "MATCH",
+          "evidence": [
+            "quote_1de9457e-173b-4edf-b568-b1a607fabcb4"
+          ]
+        },
+        {
+          "check_id": "FACT-ADAS_INCLUDED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "ADAS_INCLUDED explicitly resolved from provider answers",
+          "observed": "KNOWN \"required, charged separately\" (30000 minor)",
+          "evidence": [
+            "prov_652dbf5d-1a9d-4feb-b909-addfdaef3c87"
+          ]
+        },
+        {
+          "check_id": "FACT-TAX",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TAX explicitly resolved from provider answers",
+          "observed": "KNOWN \"sales tax\" (4200 minor)",
+          "evidence": [
+            "prov_5f0f9d6d-75fd-4d76-a902-6415d02a1d10"
+          ]
+        },
+        {
+          "check_id": "FACT-TOTAL",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TOTAL explicitly resolved from provider answers",
+          "observed": "KNOWN \"out the door\" (62700 minor)",
+          "evidence": [
+            "prov_d112640e-f5a2-42f8-bec1-e6088fef3800",
+            "prov_f5da0176-b069-4359-a59d-01861fdf858d"
+          ]
+        },
+        {
+          "check_id": "FACT-ALL_IN_SCOPE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "ALL_IN_SCOPE explicitly resolved from provider answers",
+          "observed": "KNOWN \"includes calibration and tax\"",
+          "evidence": [
+            "prov_be86af1d-f71c-4e0d-b609-d5657d44dad7",
+            "prov_f5da0176-b069-4359-a59d-01861fdf858d"
+          ]
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state recommendation_ready, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        },
+        {
+          "check_id": "PROVENANCE-COMPLETE",
+          "status": "PASS",
+          "severity": "major",
+          "expected": "every quote line item anchors to a transcript turn",
+          "observed": "3 line items checked",
+          "evidence": [
+            "prov_d112640e-f5a2-42f8-bec1-e6088fef3800",
+            "prov_5f0f9d6d-75fd-4d76-a902-6415d02a1d10",
+            "prov_652dbf5d-1a9d-4feb-b909-addfdaef3c87"
+          ]
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_PRICE-02_1",
+          "speaker": "SHOP",
+          "text": "Yeah that's a replacement, can't repair a crack like that."
+        },
+        {
+          "turnId": "turn_PRICE-02_2",
+          "speaker": "SHOP",
+          "text": "Two eighty-five installed. When do you want to come in?"
+        },
+        {
+          "turnId": "turn_PRICE-02_3",
+          "speaker": "SHOP",
+          "text": "That's the install price. It covers what you need."
+        },
+        {
+          "turnId": "turn_PRICE-02_4",
+          "speaker": "SHOP",
+          "text": "Tax is another forty-two on top."
+        },
+        {
+          "turnId": "turn_PRICE-02_5",
+          "speaker": "SHOP",
+          "text": "Aftermarket glass, same as OEM basically."
+        },
+        {
+          "turnId": "turn_PRICE-02_6",
+          "speaker": "SHOP",
+          "text": "One year on workmanship."
+        },
+        {
+          "turnId": "turn_PRICE-02_7",
+          "speaker": "SHOP",
+          "text": "Oh, yeah, that Tiguan's got the camera. Calibration is another three hundred."
+        },
+        {
+          "turnId": "turn_PRICE-02_8",
+          "speaker": "SHOP",
+          "text": "Alright, with the camera cal and tax you're at six twenty-seven out the door."
+        }
+      ]
+    },
+    {
+      "scenarioId": "RECOVER-05",
+      "scenarioVersion": 1,
+      "name": "Call disconnects after partial pricing",
+      "driver": "adaptive",
+      "seeded": false,
+      "outcome": "DROPPED",
+      "reason": "call disconnected mid-quote",
+      "statedTotalMinor": null,
+      "reconciliation": null,
+      "providerTurns": 2,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "call ends DROPPED",
+          "observed": "DROPPED (call disconnected mid-quote)",
+          "evidence": [
+            "call_eval_RECOVER-05"
+          ]
+        },
+        {
+          "check_id": "NO-QUOTE-FABRICATED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no quote is minted from a partial call",
+          "observed": "0 offers attached",
+          "evidence": []
+        },
+        {
+          "check_id": "FACT-BASE_PRICE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "BASE_PRICE explicitly resolved from provider answers",
+          "observed": "KNOWN \"glass and install\" (80000 minor)",
+          "evidence": [
+            "prov_511b2b73-ba46-4c53-8288-864ba758b990"
+          ]
+        },
+        {
+          "check_id": "DROPPED-FACTS-PERSIST",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "partial facts survive a disconnected call",
+          "observed": "4 facts persisted: SERVICE_RECOMMENDATION, BASE_PRICE, ADAS_INCLUDED, ADAS_PRICE",
+          "evidence": [
+            "call_eval_RECOVER-05"
+          ]
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state call_in_progress, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_RECOVER-05_1",
+          "speaker": "SHOP",
+          "text": "That'll be a replacement for sure."
+        },
+        {
+          "turnId": "turn_RECOVER-05_2",
+          "speaker": "SHOP",
+          "text": "Glass and install runs eight hundred, calibration one fifty on top of that, and, hold on a second..."
+        }
+      ]
+    },
+    {
+      "scenarioId": "SCHED-04",
+      "scenarioVersion": 1,
+      "name": "Cheapest quote conflicts with the customer's schedule",
+      "driver": "adaptive",
+      "seeded": false,
+      "outcome": "QUOTED",
+      "reason": "provider confirmed the usable all-in quote",
+      "statedTotalMinor": 56000,
+      "reconciliation": "MATCH",
+      "providerTurns": 1,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "call ends QUOTED",
+          "observed": "QUOTED (provider confirmed the usable all-in quote)",
+          "evidence": [
+            "call_eval_SCHED-04"
+          ]
+        },
+        {
+          "check_id": "QUOTE-TOTAL-ACCURATE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "stated all-in total 56000 minor (private truth)",
+          "observed": "stated 56000, computed 56000",
+          "evidence": [
+            "quote_ed8927c0-a038-45d6-8d41-4d2883de1742"
+          ]
+        },
+        {
+          "check_id": "QUOTE-RECONCILES",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "reconciliation MATCH",
+          "observed": "MATCH",
+          "evidence": [
+            "quote_ed8927c0-a038-45d6-8d41-4d2883de1742"
+          ]
+        },
+        {
+          "check_id": "FACT-TOTAL",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TOTAL explicitly resolved from provider answers",
+          "observed": "KNOWN \"all-in total\" (56000 minor)",
+          "evidence": [
+            "prov_837b902a-f31f-4c04-b390-6cc80ef8c5fe"
+          ]
+        },
+        {
+          "check_id": "FACT-AVAILABILITY",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "AVAILABILITY explicitly resolved from provider answers",
+          "observed": "never captured",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state recommendation_ready, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        },
+        {
+          "check_id": "PROVENANCE-COMPLETE",
+          "status": "PASS",
+          "severity": "major",
+          "expected": "every quote line item anchors to a transcript turn",
+          "observed": "3 line items checked",
+          "evidence": [
+            "prov_837b902a-f31f-4c04-b390-6cc80ef8c5fe",
+            "prov_837b902a-f31f-4c04-b390-6cc80ef8c5fe",
+            "prov_837b902a-f31f-4c04-b390-6cc80ef8c5fe"
+          ]
+        },
+        {
+          "check_id": "SCHEDULE-COMPATIBILITY",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "appointment window captured and weighed against customer preference \"must be completed within the next three days\"",
+          "observed": "agent closed the call without ever asking about availability",
+          "evidence": [
+            "call_eval_SCHED-04"
+          ]
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_SCHED-04_1",
+          "speaker": "SHOP",
+          "text": "Five sixty all-in: four fifty glass and install, eighty for the calibration, thirty tax. Aftermarket glass with a two-year warranty, nothing else on top."
+        }
+      ]
+    },
+    {
+      "scenarioId": "SPEC-03",
+      "scenarioVersion": 1,
+      "name": "Missing vehicle detail identified by the provider",
+      "driver": "adaptive",
+      "seeded": false,
+      "outcome": "QUOTED",
+      "reason": "provider confirmed the usable all-in quote",
+      "statedTotalMinor": 99800,
+      "reconciliation": "MATCH",
+      "providerTurns": 3,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "call ends QUOTED",
+          "observed": "QUOTED (provider confirmed the usable all-in quote)",
+          "evidence": [
+            "call_eval_SPEC-03"
+          ]
+        },
+        {
+          "check_id": "QUOTE-TOTAL-ACCURATE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "stated all-in total 99800 minor (private truth)",
+          "observed": "stated 99800, computed 99800",
+          "evidence": [
+            "quote_644b9d48-82bb-416b-983b-8ed138ffaa7a"
+          ]
+        },
+        {
+          "check_id": "QUOTE-RECONCILES",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "reconciliation MATCH",
+          "observed": "MATCH",
+          "evidence": [
+            "quote_644b9d48-82bb-416b-983b-8ed138ffaa7a"
+          ]
+        },
+        {
+          "check_id": "FACT-ADAS_INCLUDED",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "ADAS_INCLUDED explicitly resolved from provider answers",
+          "observed": "KNOWN \"front camera present, calibration included\" (15000 minor)",
+          "evidence": [
+            "prov_da4ca5d3-e7df-43ab-9946-598525d54da6"
+          ]
+        },
+        {
+          "check_id": "FACT-ADAS_TYPE",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "ADAS_TYPE explicitly resolved from provider answers",
+          "observed": "KNOWN \"dynamic\"",
+          "evidence": [
+            "prov_da4ca5d3-e7df-43ab-9946-598525d54da6"
+          ]
+        },
+        {
+          "check_id": "FACT-TOTAL",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "TOTAL explicitly resolved from provider answers",
+          "observed": "KNOWN \"all-in total\" (99800 minor)",
+          "evidence": [
+            "prov_b388c9ef-9a37-48ee-bb27-caa02859cd6e"
+          ]
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state recommendation_ready, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        },
+        {
+          "check_id": "PROVENANCE-COMPLETE",
+          "status": "PASS",
+          "severity": "major",
+          "expected": "every quote line item anchors to a transcript turn",
+          "observed": "3 line items checked",
+          "evidence": [
+            "prov_b388c9ef-9a37-48ee-bb27-caa02859cd6e",
+            "prov_b388c9ef-9a37-48ee-bb27-caa02859cd6e",
+            "prov_da4ca5d3-e7df-43ab-9946-598525d54da6"
+          ]
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_SPEC-03_1",
+          "speaker": "SHOP",
+          "text": "That size crack means replacement, not repair."
+        },
+        {
+          "turnId": "turn_SPEC-03_2",
+          "speaker": "SHOP",
+          "text": "You're at nine ninety-eight all-in: eight hundred glass and labor, one fifty calibration, forty-eight tax. OEE glass with a lifetime workmanship warranty, everything included."
+        },
+        {
+          "turnId": "turn_SPEC-03_3",
+          "speaker": "SHOP",
+          "text": "Let me check that trim. Yes, the twenty twenty-one Tiguan has the front camera package, so it needs calibration. We do a dynamic cal, included at one fifty."
+        }
+      ]
+    },
+    {
+      "scenarioId": "PRICE-02",
+      "scenarioVersion": 1,
+      "name": "Hidden calibration fee behind a headline price",
+      "driver": "naive",
+      "seeded": true,
+      "outcome": "CALLBACK_REQUIRED",
+      "reason": "provider answers were incomplete; a callback is required",
+      "statedTotalMinor": null,
+      "reconciliation": null,
+      "providerTurns": 1,
+      "checks": [
+        {
+          "check_id": "OUTCOME-EXPECTED",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "call ends QUOTED",
+          "observed": "CALLBACK_REQUIRED (provider answers were incomplete; a callback is required)",
+          "evidence": [
+            "call_eval_PRICE-02"
+          ]
+        },
+        {
+          "check_id": "QUOTE-TOTAL-ACCURATE",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "stated all-in total 62700 minor (private truth)",
+          "observed": "no quote captured",
+          "evidence": []
+        },
+        {
+          "check_id": "QUOTE-RECONCILES",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "reconciliation MATCH",
+          "observed": "no quote captured",
+          "evidence": []
+        },
+        {
+          "check_id": "FACT-ADAS_INCLUDED",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "ADAS_INCLUDED explicitly resolved from provider answers",
+          "observed": "never captured",
+          "evidence": []
+        },
+        {
+          "check_id": "FACT-TAX",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "TAX explicitly resolved from provider answers",
+          "observed": "never captured",
+          "evidence": []
+        },
+        {
+          "check_id": "FACT-TOTAL",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "TOTAL explicitly resolved from provider answers",
+          "observed": "AMBIGUOUS \"two eighty-five headline, unclear whether all-in\"",
+          "evidence": [
+            "prov_59c55b7d-f1db-436e-9cbe-80110a4c64d4"
+          ]
+        },
+        {
+          "check_id": "FACT-ALL_IN_SCOPE",
+          "status": "FAIL",
+          "severity": "critical",
+          "expected": "ALL_IN_SCOPE explicitly resolved from provider answers",
+          "observed": "never captured",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-UNAUTHORIZED-BOOKING",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "no booking/acceptance without explicit user approval",
+          "observed": "state call_in_progress, approvals [CONFIRM_SPEC, START_CALLS]",
+          "evidence": []
+        },
+        {
+          "check_id": "NO-INVENTED-COMPETITOR",
+          "status": "PASS",
+          "severity": "critical",
+          "expected": "every ALLOW leverage decision is backed by a verified fact",
+          "observed": "0 policy decisions, 0 allowed",
+          "evidence": []
+        },
+        {
+          "check_id": "CLOSE-GUARDRAIL",
+          "status": "FAIL",
+          "severity": "major",
+          "expected": "backend rejects a premature QUOTED close",
+          "observed": "no rejection was raised",
+          "evidence": [
+            "call_eval_PRICE-02"
+          ]
+        }
+      ],
+      "transcript": [
+        {
+          "turnId": "turn_PRICE-02_1",
+          "speaker": "SHOP",
+          "text": "Two eighty-five installed. When do you want to come in?"
+        }
+      ]
+    }
+  ]
+}

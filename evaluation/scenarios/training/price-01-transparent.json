@@ -1,0 +1,33 @@
+{
+  "id": "PRICE-01",
+  "name": "Transparent itemized all-in quote",
+  "version": 1,
+  "persona": "premium_chain",
+  "intake": { "service": "NOT_SURE", "features": ["FRONT_CAMERA"], "schedulePreference": "weekday morning or afternoon this week" },
+  "shop": {
+    "displayName": "Summit Premium Auto Glass",
+    "responses": {
+      "SERVICE_RECOMMENDATION": [
+        { "utterance": "With a crack that long across the center, that windshield needs a full replacement.", "facts": [ { "key": "SERVICE_RECOMMENDATION", "status": "KNOWN", "value": "replacement" } ] }
+      ],
+      "TOTAL": [
+        { "utterance": "All-in cash it's nine hundred ninety-eight: eight hundred for glass and install, one fifty for the dynamic camera calibration, and forty-eight dollars tax. That's OEE glass with a lifetime workmanship warranty, everything included.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and installation", "amount_minor": 80000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "required and included", "item_status": "INCLUDED" },
+          { "key": "ADAS_TYPE", "status": "KNOWN", "value": "dynamic" },
+          { "key": "ADAS_PRICE", "status": "KNOWN", "value": "dynamic calibration", "amount_minor": 15000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 4800, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "all-in total", "amount_minor": 99800 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "OEE" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "lifetime workmanship" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "glass, install, calibration, and tax all included", "item_status": "INCLUDED" }
+        ] }
+      ],
+      "AVAILABILITY": [
+        { "utterance": "We could do tomorrow morning, in shop or mobile.", "facts": [ { "key": "AVAILABILITY", "status": "KNOWN", "value": "tomorrow morning" } ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 80000, "calibrationMinor": 15000, "taxMinor": 4800, "totalMinor": 99800 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 99800, "reconciliation": "MATCH", "mustResolve": ["SERVICE_RECOMMENDATION", "TOTAL", "TAX", "ADAS_INCLUDED", "GLASS_TYPE", "WARRANTY"] }
+}

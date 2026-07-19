@@ -1,0 +1,30 @@
+{
+  "id": "NEGO-12",
+  "name": "Leverage denied when no verified competing quote exists",
+  "version": 1,
+  "persona": "premium_chain",
+  "mode": "NEGOTIATION",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "providers": [
+    {
+      "providerId": "sandbox_only_shop",
+      "displayName": "Solo Glass Company",
+      "responses": {
+        "TOTAL": [
+          { "utterance": "Nine ninety-eight all-in: eight hundred glass and install, one fifty calibration, forty-eight tax. OEE glass, lifetime warranty, everything included.", "facts": [
+            { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 80000, "item_status": "INCLUDED" },
+            { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "calibration included", "amount_minor": 15000, "item_status": "INCLUDED" },
+            { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 4800, "item_status": "INCLUDED" },
+            { "key": "TOTAL", "status": "KNOWN", "value": "all-in total", "amount_minor": 99800 },
+            { "key": "GLASS_TYPE", "status": "KNOWN", "value": "OEE" },
+            { "key": "WARRANTY", "status": "KNOWN", "value": "lifetime workmanship" },
+            { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "everything included", "item_status": "INCLUDED" }
+          ] }
+        ]
+      }
+    }
+  ],
+  "negotiation": { "target": "sandbox_only_shop", "concessionMinor": 5000, "expectDecision": "DENY", "expectedFinalMinor": null },
+  "privateTruth": { "totalMinor": 99800 },
+  "expected": { "outcome": "DECLINED", "finalTotalMinor": null, "reconciliation": null, "mustResolve": [] }
+}

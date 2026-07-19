@@ -1,0 +1,26 @@
+{
+  "id": "REFUSE-07",
+  "name": "Shop refuses to quote by phone",
+  "version": 1,
+  "persona": "walk_in_only",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Old Town Glass & Body",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "We don't do quotes over the phone. You'd have to bring the vehicle in for an estimate.", "facts": [ { "key": "TOTAL", "status": "REFUSED", "value": "will not quote by phone" } ] }
+      ],
+      "ALL_IN_SCOPE": [
+        { "utterance": "Can't say without seeing the car.", "facts": [ { "key": "ALL_IN_SCOPE", "status": "REFUSED", "value": "requires in-person estimate" } ] }
+      ],
+      "TAX": [
+        { "utterance": "That'd be part of the written estimate.", "facts": [ { "key": "TAX", "status": "REFUSED", "value": "only in written estimate" } ] }
+      ],
+      "CALLBACK": [
+        { "utterance": "Ask for Dave if you come by, mornings are best.", "facts": [ { "key": "CALLBACK", "status": "KNOWN", "value": "ask for Dave, mornings" } ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": null, "calibrationMinor": null, "taxMinor": null, "totalMinor": null },
+  "expected": { "outcome": "CALLBACK_REQUIRED", "finalTotalMinor": null, "reconciliation": null, "mustResolve": [], "mustStayUnresolved": ["TOTAL", "TAX"] }
+}

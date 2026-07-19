@@ -1,0 +1,35 @@
+{
+  "id": "RANGE-08",
+  "name": "Price range never firms into a quote",
+  "version": 1,
+  "persona": "mobile_operator",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Anywhere Mobile Glass",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "Usually runs five to seven hundred, depends on the glass and where you're at.", "facts": [ { "key": "TOTAL", "status": "AMBIGUOUS", "value": "range five hundred to seven hundred, not firm" } ] }
+      ],
+      "ALL_IN_SCOPE": [
+        { "utterance": "Depends on the job, really.", "facts": [ { "key": "ALL_IN_SCOPE", "status": "AMBIGUOUS", "value": "depends on the job" } ] }
+      ],
+      "TAX": [
+        { "utterance": "It'd be in whatever it lands at.", "facts": [ { "key": "TAX", "status": "AMBIGUOUS", "value": "unclear whether included" } ] }
+      ],
+      "GLASS_TYPE": [
+        { "utterance": "Aftermarket, good stuff though.", "facts": [ { "key": "GLASS_TYPE", "status": "KNOWN", "value": "aftermarket" } ] }
+      ],
+      "WARRANTY": [
+        { "utterance": "Year on the work.", "facts": [ { "key": "WARRANTY", "status": "KNOWN", "value": "one year workmanship" } ] }
+      ],
+      "BASE_PRICE": [
+        { "utterance": "I don't really break it down like that.", "facts": [ { "key": "BASE_PRICE", "status": "REFUSED", "value": "will not itemize" } ] }
+      ],
+      "ADAS_INCLUDED": [
+        { "utterance": "We take care of all that.", "facts": [ { "key": "ADAS_INCLUDED", "status": "AMBIGUOUS", "value": "vague, no amount or commitment" } ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": null, "calibrationMinor": null, "taxMinor": null, "totalMinor": null },
+  "expected": { "outcome": "CALLBACK_REQUIRED", "finalTotalMinor": null, "reconciliation": null, "mustResolve": [], "mustStayUnresolved": ["TOTAL"] }
+}

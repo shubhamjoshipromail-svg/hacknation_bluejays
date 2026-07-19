@@ -1,0 +1,25 @@
+{
+  "id": "MISMATCH-11",
+  "name": "Stated total lower than the sum of itemized fees",
+  "version": 1,
+  "persona": "independent",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Quick Fix Glass",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "Call it five hundred even all-in. That's four fifty for the glass, eighty calibration, twenty tax, everything included, aftermarket glass, one-year warranty.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 45000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "calibration included", "amount_minor": 8000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 2000, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "all-in, but does not match the items", "amount_minor": 50000 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "aftermarket" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "one year workmanship" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "everything included", "item_status": "INCLUDED" }
+        ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 45000, "calibrationMinor": 8000, "taxMinor": 2000, "totalMinor": 55000 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 50000, "reconciliation": "TOTAL_MISMATCH", "mustResolve": ["TOTAL"], "expectRedFlags": ["TOTAL_MISMATCH"] }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "SCHED-04",
+  "name": "Cheapest quote conflicts with the customer's schedule",
+  "version": 1,
+  "persona": "mobile_operator",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": "must be completed within the next three days" },
+  "shop": {
+    "displayName": "Budget Mobile Glass",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "Five sixty all-in: four fifty glass and install, eighty for the calibration, thirty tax. Aftermarket glass with a two-year warranty, nothing else on top.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 45000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "calibration included", "amount_minor": 8000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 3000, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "all-in total", "amount_minor": 56000 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "aftermarket" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "two years" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "everything included", "item_status": "INCLUDED" }
+        ] }
+      ],
+      "AVAILABILITY": [
+        { "utterance": "We're booked solid. Earliest I can get you in is three weeks out.", "facts": [ { "key": "AVAILABILITY", "status": "KNOWN", "value": "three weeks out" } ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 45000, "calibrationMinor": 8000, "taxMinor": 3000, "totalMinor": 56000 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 56000, "reconciliation": "MATCH", "mustResolve": ["TOTAL", "AVAILABILITY"], "appointmentCompatible": false }
+}
