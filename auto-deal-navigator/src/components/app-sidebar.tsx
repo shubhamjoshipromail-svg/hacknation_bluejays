@@ -1,12 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  FileCheck2,
-  PhoneCall,
-  Scale,
-  Handshake,
-  Trophy,
-  Radio,
-} from "lucide-react";
+import { FileCheck2, PhoneCall, Scale, Handshake, Trophy, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -29,9 +22,7 @@ export function AppSidebar() {
           </div>
           <div>
             <div className="text-sm font-semibold tracking-tight">The Negotiator</div>
-            <div className="text-[11px] text-muted-foreground">
-              AI voice · v0.4.1
-            </div>
+            <div className="text-[11px] text-muted-foreground">AI voice · v0.4.1</div>
           </div>
         </div>
       </div>

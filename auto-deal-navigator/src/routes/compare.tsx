@@ -1,12 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  formatMoney,
-  totalMinor,
-  hasUnknown,
-  type Quote,
-  type LineItem,
-} from "@/lib/mock-data";
+import { formatMoney, totalMinor, hasUnknown, type Quote, type LineItem } from "@/lib/mock-data";
 import { useRunsData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
@@ -17,7 +11,10 @@ export const Route = createFileRoute("/compare")({
   head: () => ({
     meta: [
       { title: "Compare Quotes · The Negotiator" },
-      { name: "description", content: "Side-by-side itemized quote comparison with red-flag detection." },
+      {
+        name: "description",
+        content: "Side-by-side itemized quote comparison with red-flag detection.",
+      },
     ],
   }),
 });
@@ -108,8 +105,8 @@ function ComparePage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Itemized comparison</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every fee category, side by side. Amber "?" means the shop
-              never mentioned it — we don't invent zeros.
+              Every fee category, side by side. Amber "?" means the shop never mentioned it — we
+              don't invent zeros.
             </p>
           </div>
           <HashChip hash={QUOTES[0].jobSpecHash} />
@@ -127,7 +124,9 @@ function ComparePage() {
                 {QUOTES.map((q) => (
                   <th key={q.quoteId} className="px-4 py-3 text-right min-w-[200px]">
                     <div className="text-sm font-semibold">{q.provider}</div>
-                    <div className="text-[11px] font-normal text-muted-foreground">{q.location}</div>
+                    <div className="text-[11px] font-normal text-muted-foreground">
+                      {q.location}
+                    </div>
                     {q.redFlags.length > 0 && (
                       <div className="mt-1 flex flex-wrap justify-end gap-1">
                         {q.redFlags.map((f) => (
@@ -193,8 +192,8 @@ function ComparePage() {
       </div>
 
       <p className="mt-4 text-[11px] text-muted-foreground">
-        Click any $ amount to open evidence — transcript excerpt, speaker,
-        timestamp, and provenance IDs.
+        Click any $ amount to open evidence — transcript excerpt, speaker, timestamp, and provenance
+        IDs.
       </p>
 
       {/* Evidence drawer */}
@@ -205,14 +204,16 @@ function ComparePage() {
 
 function EvidenceDrawer({ ctx, onClose }: { ctx: DrawerCtx; onClose: () => void }) {
   const { quote, item } = ctx;
-  const turn = quote.transcriptTurns.find((t) =>
-    t.text.toLowerCase().includes(
-      item.category.split(" ")[0].toLowerCase(),
-    ),
-  ) ?? quote.transcriptTurns[0];
+  const turn =
+    quote.transcriptTurns.find((t) =>
+      t.text.toLowerCase().includes(item.category.split(" ")[0].toLowerCase()),
+    ) ?? quote.transcriptTurns[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <aside
         onClick={(e) => e.stopPropagation()}
         className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
@@ -247,7 +248,12 @@ function EvidenceDrawer({ ctx, onClose }: { ctx: DrawerCtx; onClose: () => void 
             </div>
             <div className="rounded-md border border-border bg-background/40 p-4">
               <div className="flex items-center gap-2 text-[10px] mono">
-                <span className={cn("font-semibold", turn.speaker === "AGENT" ? "text-primary" : "text-info")}>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    turn.speaker === "AGENT" ? "text-primary" : "text-info",
+                  )}
+                >
                   {turn.speaker}
                 </span>
                 <span className="text-muted-foreground/60">·</span>
@@ -264,9 +270,18 @@ function EvidenceDrawer({ ctx, onClose }: { ctx: DrawerCtx; onClose: () => void 
               Provenance
             </div>
             <div className="flex flex-wrap gap-1">
-              {item.provenanceIds.length ? item.provenanceIds.map((p) => (
-                <span key={p} className="rounded-sm border border-border bg-background/40 px-2 py-0.5 mono text-[10px]">{p}</span>
-              )) : <span className="mono text-[11px] text-warning">no provenance — flagged</span>}
+              {item.provenanceIds.length ? (
+                item.provenanceIds.map((p) => (
+                  <span
+                    key={p}
+                    className="rounded-sm border border-border bg-background/40 px-2 py-0.5 mono text-[10px]"
+                  >
+                    {p}
+                  </span>
+                ))
+              ) : (
+                <span className="mono text-[11px] text-warning">no provenance — flagged</span>
+              )}
             </div>
           </div>
         </div>

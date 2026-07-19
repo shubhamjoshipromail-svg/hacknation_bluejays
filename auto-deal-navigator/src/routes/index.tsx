@@ -39,12 +39,10 @@ function JobSpecPage() {
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 01 · Job Spec
         </div>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-          Confirmed job specification
-        </h1>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Confirmed job specification</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          A single hashed source of truth. Every provider call, quote line,
-          and negotiation tactic is anchored to this spec.
+          A single hashed source of truth. Every provider call, quote line, and negotiation tactic
+          is anchored to this spec.
         </p>
       </header>
 
@@ -57,9 +55,7 @@ function JobSpecPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-success">
-                  CONFIRMED
-                </span>
+                <span className="text-sm font-semibold text-success">CONFIRMED</span>
                 <span className="text-[11px] text-muted-foreground">
                   · locked 07/19 · 14:02 EST
                 </span>
@@ -87,22 +83,9 @@ function JobSpecPage() {
               source={JOB_SPEC.vehicle.source}
               value={`${JOB_SPEC.vehicle.year} ${JOB_SPEC.vehicle.make} ${JOB_SPEC.vehicle.model}`}
             />
-            <Field
-              label="VIN"
-              source={JOB_SPEC.vin.source}
-              mono
-              value={JOB_SPEC.vin.masked}
-            />
-            <Field
-              label="Service"
-              source={JOB_SPEC.service.source}
-              value={JOB_SPEC.service.type}
-            />
-            <Field
-              label="Payment"
-              source={JOB_SPEC.payment.source}
-              value={JOB_SPEC.payment.type}
-            />
+            <Field label="VIN" source={JOB_SPEC.vin.source} mono value={JOB_SPEC.vin.masked} />
+            <Field label="Service" source={JOB_SPEC.service.source} value={JOB_SPEC.service.type} />
+            <Field label="Payment" source={JOB_SPEC.payment.source} value={JOB_SPEC.payment.type} />
             <Field
               label="Location"
               source={JOB_SPEC.location.source}
@@ -121,17 +104,15 @@ function JobSpecPage() {
               <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 <div className="text-sm">
-                  <span className="font-semibold text-primary">
-                    ADAS front camera: CONFIRMED
-                  </span>
+                  <span className="font-semibold text-primary">ADAS front camera: CONFIRMED</span>
                   <span className="ml-2 text-xs text-muted-foreground">
                     (NHTSA vehicle safety database)
                   </span>
                 </div>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Calibration is required after windshield replacement for this
-                VIN. Providers omitting calibration will be flagged.
+                Calibration is required after windshield replacement for this VIN. Providers
+                omitting calibration will be flagged.
               </p>
             </div>
 
@@ -159,12 +140,11 @@ function JobSpecPage() {
       </div>
 
       <div className="mt-6 rounded-md border border-border bg-panel/50 px-4 py-3 text-[11px] text-muted-foreground">
-        <span className="mono text-primary">provenance:</span> every field on
-        this spec carries a source tag. Downstream agents can only cite claims
-        traceable to <span className="mono">VOICE</span>,{" "}
-        <span className="mono">DOCUMENT</span>, or{" "}
-        <span className="mono">NHTSA</span> evidence — no hallucinated facts
-        cross the policy boundary.
+        <span className="mono text-primary">provenance:</span> every field on this spec carries a
+        source tag. Downstream agents can only cite claims traceable to{" "}
+        <span className="mono">VOICE</span>, <span className="mono">DOCUMENT</span>, or{" "}
+        <span className="mono">NHTSA</span> evidence — no hallucinated facts cross the policy
+        boundary.
       </div>
     </div>
   );

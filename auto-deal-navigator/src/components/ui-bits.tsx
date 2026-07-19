@@ -16,13 +16,7 @@ const map = {
   },
 } as const;
 
-export function SourceTag({
-  source,
-  className,
-}: {
-  source: ProvenanceSource;
-  className?: string;
-}) {
+export function SourceTag({ source, className }: { source: ProvenanceSource; className?: string }) {
   const cfg = map[source];
   const Icon = cfg.icon;
   return (

@@ -1,11 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  formatMoney,
-  totalMinor,
-  type Quote,
-  type RankingEntry,
-} from "@/lib/mock-data";
+import { formatMoney, totalMinor, type Quote, type RankingEntry } from "@/lib/mock-data";
 import { useRunsData } from "@/hooks/use-runs-data";
 import { HashChip } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
@@ -16,7 +11,10 @@ export const Route = createFileRoute("/recommendation")({
   head: () => ({
     meta: [
       { title: "Recommendation · The Negotiator" },
-      { name: "description", content: "Ranked provider recommendation with evidence-backed score components." },
+      {
+        name: "description",
+        content: "Ranked provider recommendation with evidence-backed score components.",
+      },
     ],
   }),
 });
@@ -59,8 +57,8 @@ function RecommendationPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Best deal</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Ranked by price, completeness, trust, and logistics. Every
-              number is backed by a transcript excerpt.
+              Ranked by price, completeness, trust, and logistics. Every number is backed by a
+              transcript excerpt.
             </p>
           </div>
           <HashChip hash={winnerQuote.jobSpecHash} />
@@ -69,7 +67,10 @@ function RecommendationPage() {
 
       {/* Winner */}
       <section className="panel relative overflow-hidden mb-6">
-        <div className="absolute inset-0 opacity-70 pointer-events-none" style={{ background: "var(--gradient-hero)" }} />
+        <div
+          className="absolute inset-0 opacity-70 pointer-events-none"
+          style={{ background: "var(--gradient-hero)" }}
+        />
         <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
@@ -120,7 +121,9 @@ function RecommendationPage() {
           <h2 className="text-sm font-semibold tracking-tight">Full ranking</h2>
           <span className="mono text-[10px] text-muted-foreground">{RANKING.length} providers</span>
         </div>
-        {RANKING.map((r, i) => <RankRow key={r.quoteId} r={r} rank={i + 1} quotes={QUOTES} onEvidence={setEv} />)}
+        {RANKING.map((r, i) => (
+          <RankRow key={r.quoteId} r={r} rank={i + 1} quotes={QUOTES} onEvidence={setEv} />
+        ))}
       </section>
 
       {ev && <EvidenceDrawer ctx={ev} quotes={QUOTES} onClose={() => setEv(null)} />}
@@ -215,10 +218,21 @@ function RankRow({
   );
 }
 
-function EvidenceDrawer({ ctx, quotes, onClose }: { ctx: EvidenceCtx; quotes: Quote[]; onClose: () => void }) {
+function EvidenceDrawer({
+  ctx,
+  quotes,
+  onClose,
+}: {
+  ctx: EvidenceCtx;
+  quotes: Quote[];
+  onClose: () => void;
+}) {
   const q = quotes.find((x) => x.quoteId === ctx.quoteId) ?? quotes[0];
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <aside
         onClick={(e) => e.stopPropagation()}
         className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
@@ -244,7 +258,12 @@ function EvidenceDrawer({ ctx, quotes, onClose }: { ctx: EvidenceCtx; quotes: Qu
           {q.transcriptTurns.map((t) => (
             <div key={t.turnId} className="rounded-md border border-border bg-background/40 p-3">
               <div className="flex items-center gap-2 text-[10px] mono">
-                <span className={cn("font-semibold", t.speaker === "AGENT" ? "text-primary" : "text-info")}>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    t.speaker === "AGENT" ? "text-primary" : "text-info",
+                  )}
+                >
                   {t.speaker}
                 </span>
                 <span className="text-muted-foreground/60">·</span>

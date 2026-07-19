@@ -10,20 +10,41 @@ export const Route = createFileRoute("/calls")({
   head: () => ({
     meta: [
       { title: "Live Calls · The Negotiator" },
-      { name: "description", content: "Real-time provider calls with live transcripts and event feed." },
+      {
+        name: "description",
+        content: "Real-time provider calls with live transcripts and event feed.",
+      },
     ],
   }),
 });
 
 function StatusPill({ status }: { status: Quote["callStatus"] }) {
   const cfg = {
-    QUEUED: { label: "QUEUED", cls: "text-muted-foreground border-border bg-muted/40", icon: Phone },
-    ON_CALL: { label: "ON CALL", cls: "text-info border-info/40 bg-info/10", icon: PhoneCall, pulse: true },
-    COMPLETE: { label: "COMPLETE", cls: "text-success border-success/40 bg-success/10", icon: PhoneOff },
+    QUEUED: {
+      label: "QUEUED",
+      cls: "text-muted-foreground border-border bg-muted/40",
+      icon: Phone,
+    },
+    ON_CALL: {
+      label: "ON CALL",
+      cls: "text-info border-info/40 bg-info/10",
+      icon: PhoneCall,
+      pulse: true,
+    },
+    COMPLETE: {
+      label: "COMPLETE",
+      cls: "text-success border-success/40 bg-success/10",
+      icon: PhoneOff,
+    },
   }[status];
   const Icon = cfg.icon;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] mono", cfg.cls)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] mono",
+        cfg.cls,
+      )}
+    >
       {"pulse" in cfg && cfg.pulse ? (
         <span className="relative flex h-1.5 w-1.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-info opacity-75" />
@@ -77,12 +98,16 @@ function CallCard({ q }: { q: Quote }) {
         <div className="max-h-64 overflow-y-auto p-3 space-y-2 text-[12px] leading-relaxed">
           {q.transcriptTurns.map((t) => (
             <div key={t.turnId} className="flex gap-2">
-              <span className="mono text-[9px] text-muted-foreground/60 shrink-0 w-9 pt-0.5">{t.timestamp}</span>
+              <span className="mono text-[9px] text-muted-foreground/60 shrink-0 w-9 pt-0.5">
+                {t.timestamp}
+              </span>
               <div className="min-w-0">
-                <div className={cn(
-                  "text-[9px] font-semibold tracking-[0.12em] mono",
-                  t.speaker === "AGENT" ? "text-primary" : "text-info",
-                )}>
+                <div
+                  className={cn(
+                    "text-[9px] font-semibold tracking-[0.12em] mono",
+                    t.speaker === "AGENT" ? "text-primary" : "text-info",
+                  )}
+                >
                   {t.speaker}
                 </div>
                 <p className="text-foreground/90">{t.text}</p>
@@ -106,7 +131,9 @@ function CallCard({ q }: { q: Quote }) {
           Event feed
         </div>
         <div className="px-3 py-2 max-h-48 overflow-y-auto">
-          {q.events.map((e) => <EventLine key={e.id} e={e} />)}
+          {q.events.map((e) => (
+            <EventLine key={e.id} e={e} />
+          ))}
         </div>
       </div>
     </article>
@@ -125,20 +152,28 @@ function LiveCallsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Live calls</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Three providers dialed in parallel. Every transcript turn, tactic,
-              and line-item log is streamed to the audit trail.
+              Three providers dialed in parallel. Every transcript turn, tactic, and line-item log
+              is streamed to the audit trail.
             </p>
           </div>
           <div className="hidden md:flex items-center gap-4 mono text-[11px] text-muted-foreground">
-            <span><span className="text-success">●</span> 2 complete</span>
-            <span><span className="text-info">●</span> 1 on call</span>
-            <span><span className="text-muted-foreground">●</span> 0 queued</span>
+            <span>
+              <span className="text-success">●</span> 2 complete
+            </span>
+            <span>
+              <span className="text-info">●</span> 1 on call
+            </span>
+            <span>
+              <span className="text-muted-foreground">●</span> 0 queued
+            </span>
           </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {QUOTES.map((q) => <CallCard key={q.quoteId} q={q} />)}
+        {QUOTES.map((q) => (
+          <CallCard key={q.quoteId} q={q} />
+        ))}
       </div>
     </div>
   );

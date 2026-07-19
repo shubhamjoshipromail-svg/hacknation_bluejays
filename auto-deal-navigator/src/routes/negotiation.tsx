@@ -10,7 +10,10 @@ export const Route = createFileRoute("/negotiation")({
   head: () => ({
     meta: [
       { title: "Negotiation · The Negotiator" },
-      { name: "description", content: "Policy-audited negotiation timeline with verified savings." },
+      {
+        name: "description",
+        content: "Policy-audited negotiation timeline with verified savings.",
+      },
     ],
   }),
 });
@@ -21,8 +24,7 @@ function NegotiationPage() {
     QUOTES.find((q) => q.quoteId === "q_clearview") ??
     QUOTES.find((q) => q.revisedOfferMinor !== undefined) ??
     QUOTES[0];
-  const savings =
-    (primary.originalOfferMinor ?? 0) - (primary.revisedOfferMinor ?? 0);
+  const savings = (primary.originalOfferMinor ?? 0) - (primary.revisedOfferMinor ?? 0);
 
   const timeline = [
     {
@@ -69,8 +71,8 @@ function NegotiationPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Negotiation trail</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Every tactic runs through the policy engine. The agent may only
-              cite a fact after it has been minted as a VerifiedFact.
+              Every tactic runs through the policy engine. The agent may only cite a fact after it
+              has been minted as a VerifiedFact.
             </p>
           </div>
           <HashChip hash={primary.jobSpecHash} />
@@ -92,9 +94,7 @@ function NegotiationPage() {
               <span className="mono text-4xl font-semibold text-primary drop-shadow-[0_0_20px_var(--color-primary)]">
                 {formatMoney(savings)}
               </span>
-              <span className="text-sm text-muted-foreground">
-                on {primary.provider}
-              </span>
+              <span className="text-sm text-muted-foreground">on {primary.provider}</span>
             </div>
           </div>
           <div className="flex items-center gap-3 mono text-sm">
@@ -147,7 +147,12 @@ function NegotiationPage() {
                   <div className="flex items-baseline justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={cn("mono text-[10px] font-semibold tracking-[0.12em]", cfg.text)}>
+                        <span
+                          className={cn(
+                            "mono text-[10px] font-semibold tracking-[0.12em]",
+                            cfg.text,
+                          )}
+                        >
                           {cfg.label}
                         </span>
                         <span className="mono text-[10px] text-muted-foreground/70">{step.t}</span>
@@ -192,9 +197,7 @@ function NegotiationPage() {
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 mono text-[10px] font-bold tracking-[0.12em]",
-                        isDeny
-                          ? "bg-danger text-danger-foreground"
-                          : "bg-success/20 text-success",
+                        isDeny ? "bg-danger text-danger-foreground" : "bg-success/20 text-success",
                       )}
                     >
                       {isDeny ? <Ban className="h-3 w-3" /> : <Check className="h-3 w-3" />}
@@ -215,8 +218,8 @@ function NegotiationPage() {
             })}
           </ul>
           <div className="mt-4 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
-            The policy engine denied 1 of 4 proposed statements. No unverified
-            claims left the agent's mouth on this run.
+            The policy engine denied 1 of 4 proposed statements. No unverified claims left the
+            agent's mouth on this run.
           </div>
         </section>
       </div>
