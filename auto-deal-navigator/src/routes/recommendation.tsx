@@ -45,6 +45,16 @@ function RecommendationPage() {
   const { quotes: QUOTES, ranking: RANKING } = useRunsData();
   const [ev, setEv] = useState<EvidenceCtx | null>(null);
   const winner = RANKING[0];
+  if (!winner || QUOTES.length === 0)
+    return (
+      <div className="px-6 py-10 md:px-10">
+        <h1 className="text-3xl font-semibold">Recommendation</h1>
+        <div className="panel mt-6 p-8 text-sm text-muted-foreground">
+          No recommendation is available until at least one itemized offer has been recorded and
+          checked for comparability and red flags.
+        </div>
+      </div>
+    );
   const winnerQuote = QUOTES.find((q) => q.quoteId === winner.quoteId) ?? QUOTES[0];
 
   return (

@@ -141,7 +141,12 @@ function CallCard({ q }: { q: Quote }) {
 }
 
 function LiveCallsPage() {
-  const { quotes: QUOTES } = useRunsData();
+  const { calls: CALLS, negotiation } = useRunsData();
+  const completed = CALLS.filter((call) => call.callStatus === "COMPLETE").length;
+  const active = CALLS.filter((call) => call.callStatus === "ON_CALL").length;
+  const startedQuoteCalls =
+    negotiation?.calls.filter((call) => call.phase === "QUOTE_COLLECTION").length ?? 0;
+  const remaining = Math.max(0, (negotiation?.providers.length ?? 1) - startedQuoteCalls);
   return (
     <div className="px-6 py-8 md:px-10 md:py-10">
       <header className="mb-6">
@@ -152,29 +157,34 @@ function LiveCallsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Live calls</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Three providers dialed in parallel. Every transcript turn, tactic, and line-item log
-              is streamed to the audit trail.
+              Every completed, callback, declined, dropped, and active interaction is retained even
+              when the provider does not give a quote.
             </p>
           </div>
           <div className="hidden md:flex items-center gap-4 mono text-[11px] text-muted-foreground">
             <span>
-              <span className="text-success">●</span> 2 complete
+              <span className="text-success">●</span> {completed} complete
             </span>
             <span>
-              <span className="text-info">●</span> 1 on call
+              <span className="text-info">●</span> {active} on call
             </span>
             <span>
-              <span className="text-muted-foreground">●</span> 0 queued
+              <span className="text-muted-foreground">●</span> {remaining} remaining
             </span>
           </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {QUOTES.map((q) => (
+        {CALLS.map((q) => (
           <CallCard key={q.quoteId} q={q} />
         ))}
       </div>
+      {CALLS.length === 0 && (
+        <div className="panel p-8 text-sm text-muted-foreground">
+          No phone interaction has been recorded for this negotiation yet.
+        </div>
+      )}
     </div>
   );
 }

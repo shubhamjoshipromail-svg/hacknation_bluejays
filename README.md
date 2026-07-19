@@ -1,180 +1,133 @@
-# Hackathon Team Repository
+# The Negotiator
 
-This repository is the single shared location for all project work.
+The Negotiator is a phone-based auto-glass quote and negotiation assistant. The current product path is an intentionally safe sandbox: a user submits a minimal intake, the backend returns one configured sandbox provider, starts an ElevenLabs outbound call automatically, stores the transcript and itemized quote, and updates the frontend from the same canonical run.
 
-Do not send separate ZIP files or build completely separate versions of the project. Everyone works in this repository using their own branch, and completed work is merged regularly.
+The canonical product path is deliberately small:
 
-## Team roles
+`submit intake -> mock provider discovery -> automatic quote call -> transcript + quote -> recommendation`
 
-We will assign four general owners:
+The AI never accepts, rejects, counters, shares sensitive information, books, pays, or confirms an agreement without an explicit user approval.
 
-- Integration Lead: manages the repository, reviews merges, and keeps the main branch working.
-- Frontend/Product Owner: owns the interface and user experience.
-- AI/Backend Owner: owns AI workflows, APIs, agents, and backend logic.
-- Data/Evaluation Owner: owns data processing, testing, metrics, and demo validation.
+## Architecture
 
-People may help each other, but they must communicate before editing files owned by someone else.
+- One Fastify API: `server.ts`
+- One workflow/state service: `negotiation-service.ts`
+- One atomic JSON store: `store.ts` -> `.data/current-run.json`
+- Deterministic policy and comparison rules: `policy.ts`
+- One direct ElevenLabs/Twilio call adapter: `elevenlabs-call-service.ts`
+- One sandbox discovery adapter: `provider-search-service.ts`
+- One automatic orchestrator: `workflow-service.ts`
+- One adaptive call-state engine: `call-intelligence.ts`
+- One source-backed benchmark bridge: `benchmark-service.ts` -> `benchmarking/`
+- One React/TanStack frontend: `auto-deal-navigator/`
 
-## Main rule
+The legacy text loop and three YAML personas remain as a labeled golden-path evaluation fixture. They are not the source of product state.
 
-Never work directly on the `main` branch.
+## Local setup
 
-The `main` branch should always contain the most stable working version of the project.
-
-## How to start working
-
-Before beginning a task:
-
-1. Tell the team what you are working on.
-2. Mention which files or part of the project you expect to change.
-3. Pull the latest version of `main`.
-4. Create a new branch for your task.
-
-Example branch names:
-
-- `feat-frontend`
-- `feat-ai-agent`
-- `feat-data`
-- `feat-evaluation`
-- `fix-upload-error`
-- `fix-demo`
-
-## Beginner-friendly GitHub Desktop workflow
-
-Everyone may use GitHub Desktop instead of the command line.
-
-1. Clone this repository using GitHub Desktop.
-2. Click “Current Branch.”
-3. Select “New Branch.”
-4. Give the branch a clear name such as `feat-frontend`.
-5. Make your changes.
-6. Review the changed files in GitHub Desktop.
-7. Write a short commit message.
-8. Click “Commit to [branch name].”
-9. Click “Push origin.”
-10. Open GitHub and create a Pull Request.
-11. Ask another teammate to review it.
-12. Merge only after confirming it does not break the project.
-
-## Pull Request rules
-
-Every Pull Request should briefly explain:
-
-- What did you build or change?
-- Which part of the project did you modify?
-- How did you test it?
-- Does another teammate need to change anything?
-- Are there any known problems?
-
-Keep Pull Requests small. Do not work for the entire hackathon on one giant branch.
-
-Merge completed work regularly so everyone stays close to the same version.
-
-## Before starting a new task
-
-After another Pull Request is merged:
-
-1. Return to the `main` branch.
-2. Pull the newest changes.
-3. Create a new branch for the next task.
-
-Do not continue building new features on an old merged branch.
-
-## Avoiding conflicts
-
-Before changing a major file, tell the team.
-
-Try not to have two people editing the same file at the same time.
-
-Files such as dependency files, database schemas, shared API formats, environment-variable templates, and deployment settings should normally be handled by the Integration Lead.
-
-If GitHub reports a merge conflict, do not randomly choose “accept current” or “accept incoming.” Ask the person who owns that part of the project and resolve it together.
-
-## AI coding agent rules
-
-Anyone using Codex, Claude Code, Cursor, or another coding agent must tell the agent:
-
-- Work only on the assigned branch.
-- Do not push directly to `main`.
-- Do not merge Pull Requests.
-- Do not delete or rewrite unrelated work.
-- Do not change another teammate’s files without permission.
-- Do not commit API keys or `.env` files.
-- Do not make large unrelated refactors.
-- Explain which files were changed.
-- Test the change before saying it is complete.
-
-## Secrets
-
-Never place API keys, passwords, tokens, or credentials directly inside project files or GitHub.
-
-Do not commit `.env` files.
-
-The Integration Lead will handle shared deployment secrets.
-
-## Merge process
-
-The normal process is:
-
-1. Pull latest `main`.
-2. Create a branch.
-3. Complete one small task.
-4. Commit and push.
-5. Open a Pull Request.
-6. Another teammate reviews it.
-7. Merge it.
-8. Everyone pulls the new `main`.
-
-We will integrate continuously. We will not wait until the end to combine everyone’s work.
-
-## Current status
-
-- Challenge: Not selected
-- Product idea: Not selected
-- Technology stack: Not selected
-- Team roles: Not assigned
-
-## Negotiator Phase 2 voice transport
-
-The text and voice transports share `store.ts` and `tools.ts`. `domain.ts`, `policy.ts`,
-and the negotiation playbook remain transport-independent. Runtime state is persisted
-with owner-only permissions at `.data/current-run.json`; `GET /runs/current` returns the
-same shape for the UI.
-
-### Local setup
-
-1. Copy `.env.example` to `.env` and fill the required values. Generate the tool secret
-   locally with `openssl rand -hex 32`. Never commit `.env`, `agents.json`, or tunnel keys.
-2. Start the tool server: `npm run server` (default port `3000`).
-3. Start a public HTTPS tunnel: `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`.
-4. Set `PUBLIC_BASE_URL` to the HTTPS tunnel origin and configure an ElevenLabs
-   `post_call_transcription` webhook at `PUBLIC_BASE_URL/webhooks/elevenlabs`.
-   Put its HMAC secret in `ELEVENLABS_WEBHOOK_SECRET`.
-5. Provision or update all four agents: `npm run provision`. IDs are saved locally in
-   ignored `agents.json`.
-
-The tool endpoint requires `x-tool-secret`; provisioning stores that value in the
-ElevenLabs secrets manager and references the secret ID from every webhook tool.
-
-### Calls
-
-Use two imported Twilio numbers for the agent-to-agent simulation: one outbound number
-assigned to the buyer (`ELEVENLABS_PHONE_NUMBER_ID`) and one inbound number assigned to
-the selected persona (`PERSONA_PHONE_NUMBER_ID`, with its E.164 number passed as `--to`).
+Requires Node.js 20+.
 
 ```bash
-npm run call -- --persona premium_chain --phase QUOTE_COLLECTION --to +15555550123
-npm run call:all -- --to +15555550123
+npm install
+cp .env.example .env
+npm run server
 ```
 
-With only one number, the runner can reassign it for inbound persona mode, but Twilio
-generally cannot place a number-to-itself call; two numbers are the reliable mode.
-The server must remain reachable throughout calls so mid-call tools and the signed
-post-call transcription webhook can update the shared store.
+In a second terminal:
 
-Failure behavior is closed: tool errors instruct the buyer to follow up instead of
-inventing data, invalid/stale webhooks receive `401`, initiation failures become
-`DROPPED`, partial line items survive, and unmatched provenance emits
-`[RECONCILE_WARN]`.
+```bash
+cd auto-deal-navigator
+npm install
+npm run dev
+```
 
-Update this section after the team makes those decisions.
+The frontend uses `http://localhost:3000` by default. Set `VITE_API_URL` when the backend is elsewhere.
+
+## Environment variables
+
+Voice calls require:
+
+- `ELEVENLABS_API_KEY`
+- `ELEVENLABS_PHONE_NUMBER_ID`
+- `TOOL_SHARED_SECRET`
+- `PUBLIC_BASE_URL`
+- `ELEVENLABS_WEBHOOK_SECRET`
+- `CALL_MODE=SANDBOX`
+- `SANDBOX_PROVIDER_NAME`
+- `SANDBOX_PROVIDER_NUMBER`
+
+For compatibility, an existing `PERSONA_TO_NUMBER` is used only when `SANDBOX_PROVIDER_NUMBER` is absent. In either case it is treated explicitly as the sandbox provider, never as a customer fallback. Google Places and real provider discovery are not used.
+
+`TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are used while configuring telephony. `OPENAI_API_KEY` and `OPENAI_MODEL` are optional and only used by the legacy report-prose fixture.
+
+## Automatic sandbox API
+
+- `POST /api/runs` - accepts minimal vehicle/service intake, discovers the configured sandbox provider, persists a run, and starts the quote call asynchronously
+- `GET /api/negotiations/current` - shared frontend/backend run contract
+- `POST /tools/:toolName` - authenticated ElevenLabs tools that write call-specific evidence, quote fields, terms, and outcomes
+- `POST /webhooks/elevenlabs` - authenticated final transcript ingestion, quote reconciliation, recommendation, and eligible negotiation kickoff
+
+The VIN is optional in sandbox intake. If supplied, it is passed as a private specification field and the voice agent says it only when the provider explicitly asks.
+
+The lower-level endpoints below remain for validation, tests, and future provider discovery:
+
+- `GET /api/vin/:vin` - official NHTSA vPIC decode with normalized ADAS evidence
+- `POST /api/negotiations/from-vin` - canonical VIN-first intake; year/make/model are not manually entered
+- `POST /api/negotiations` - lower-level validated intake used by tests and adapters
+- `POST /api/negotiations/:id/documents` - add pasted text from an existing quote/bill into the same spec
+- `POST /api/negotiations/:id/approvals` - explicit approval checkpoint
+- `POST /api/negotiations/:id/offers` - transcript-backed structured offer
+- `POST /api/negotiations/:id/recommendation` - deterministic next action
+- `POST /api/negotiations/:id/follow-ups` - idempotent recall task
+- `POST /api/negotiations/:id/close` - terminal state; acceptance requires `ACCEPT_OFFER`
+- `GET /api/negotiations/current` - frontend contract
+
+## Local sandbox demo
+
+1. Start a public HTTPS tunnel to port 3000 and set `PUBLIC_BASE_URL`.
+2. Run `npm run provision` after changing prompts, tools, or the public URL.
+3. Start the backend with `npm run server` and the frontend with `npm run dev` inside `auto-deal-navigator`.
+4. Open `http://localhost:8080`, enter the minimal intake, and choose **Find and call sandbox provider**.
+
+The UI immediately shows the configured sandbox providers and queued/in-progress state. With providers two and three configured, quote calls run sequentially: each final webhook advances to the next provider. Comparison waits until every configured quote call reaches a terminal outcome. One negotiation callback may then target the highest comparable quote that has a lower verified competing quote; the final webhook recomputes the recommendation. Tool calls save evidence while each call is live.
+
+## Adaptive conversation brain
+
+The intake agent does not follow a mandatory question order. It starts with `get_call_state`, records every explicit fact from each provider answer with one `record_provider_answer` call, and chooses its next move from critical gaps, optional gaps, contradictions, and completion status returned by the backend. One answer can resolve multiple facts; repeated facts are idempotent; conflicting money requires an explicit correction before it replaces the prior value. Questions become conditional on intake and call state—for example, ADAS details are not required when the vehicle is known not to have a front camera.
+
+Buyer agents use Eleven v3 Conversational with Expressive Mode and the conversational Eric voice. The disclosure opening is non-interruptible, later turns remain interruptible, and the prompt explicitly separates provider evidence from the agent's own speech. Spoken confirmation finishes before the single silent `close_call` action, preventing truncated or repeated closing lines. Phone calls remain encoded as Twilio-compatible μ-law at 8 kHz.
+
+The separate benchmarking vertical runs before call dispatch with real provider discovery disabled. Its bundled source-derived evidence supplies a labeled directional range, warnings, and call guidance. Only two or more reconciled same-scope provider quotes can promote that range to `VERIFIED`; published benchmark ranges are never competitor leverage. Run the vertical independently with `npm run benchmark -- benchmarking/examples/request.json --offline`.
+
+## Tests
+
+```bash
+npm run typecheck
+npm test
+cd auto-deal-navigator && npm run lint && npm run build
+```
+
+The integration-focused suite covers VIN normalization, creation, benchmark promotion from estimated to verified local quotes, shared document intake, approval enforcement, offer/risk handling, recommendation, idempotent follow-up, terminal-state enforcement, tool/webhook security, policy honesty, money validation, and failure outcomes.
+
+## HackNation compliance
+
+- [x] One vertical closes intake -> calls -> negotiation -> ranked/recommended outcome in the implementation.
+- [x] One durable spec is reused across calls.
+- [x] Three distinct voice counterpart personas/human styles are supported.
+- [x] Itemized structured quotes and structured call outcomes.
+- [x] Verified leverage can produce a measurable revised offer.
+- [x] AI disclosure, no-bluff policy, friction prompts, webhook/tool failure handling.
+- [x] Transcript/provenance anchors and evidence-backed quote facts.
+- [x] Human approval before calls and binding decisions.
+- [~] Document intake accepts pasted text from an existing quote/bill and labels it as user-provided; OCR/file upload is not implemented.
+- [~] ElevenLabs voice interview intake is not yet provisioned as a separate intake agent.
+- [~] Recording URLs are not retained in the canonical report.
+- [~] The complete live three-call golden run still requires valid telephony credentials and a reachable webhook during the demo.
+
+These partial items are intentionally visible; the UI does not present mock data as live data or estimates as verified benchmarks.
+
+## Strong demo script
+
+Use the 2021 Volkswagen Tiguan scenario with front-camera calibration. Create the negotiation with a $650 target and $900 walk-away. Show that the benchmark is labeled `ESTIMATED`, confirm the spec, and approve calls. Run the three styles: a premium chain, hidden-fee lowballer, and vague mobile operator. Highlight the calibration checklist, structured decline/callback handling, and the lowball red flag. Then play the negotiation where the premium provider revises its all-in total only after the policy releases an exact verified competing quote. Finish on the recommendation, event history, and explicit final approval boundary.
+
+See [AUDIT_AND_PLAN.md](AUDIT_AND_PLAN.md) for the repository-specific audit and [BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md) for the VIN, benchmark, call, leverage, and recommendation data flow.

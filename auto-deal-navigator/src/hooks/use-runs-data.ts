@@ -1,74 +1,187 @@
-import { useEffect, useState } from "react";
-import {
-  JOB_SPEC,
-  QUOTES,
-  POLICY_DECISIONS,
-  RANKING,
-  type JobSpec,
-  type Quote,
-  type PolicyDecision,
-  type RankingEntry,
-} from "@/lib/mock-data";
+import { useCallback, useEffect, useState } from "react";
+import type { JobSpec, PolicyDecision, Quote, RankingEntry } from "@/lib/mock-data";
+import type { RunView } from "../../../shared/contracts";
 
+export type NegotiationData = RunView;
 export interface RunsData {
   jobSpec: JobSpec;
   quotes: Quote[];
+  calls: Quote[];
   policyDecisions: PolicyDecision[];
   ranking: RankingEntry[];
+  negotiation: NegotiationData | null;
+  connection: "loading" | "live" | "empty" | "error";
+  error: string | null;
+  refresh: () => Promise<void>;
 }
 
-const MOCK: RunsData = {
-  jobSpec: JOB_SPEC,
-  quotes: QUOTES,
-  policyDecisions: POLICY_DECISIONS,
-  ranking: RANKING,
+export const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3000";
+const blankSpec: JobSpec = {
+  hash: "No confirmed spec",
+  status: "CONFIRMED",
+  vehicle: { year: 0, make: "Not", model: "created", source: "VOICE" },
+  vin: { masked: "Not provided", full: "", source: "DOCUMENT" },
+  service: { type: "Windshield replacement", source: "VOICE" },
+  payment: { type: "Cash-pay", source: "VOICE" },
+  location: { zip: "-----", source: "VOICE" },
+  adas: { confirmed: false, source: "VOICE", note: "Not confirmed" },
+  schedule: { windows: [], source: "VOICE" },
 };
-
-const RUNS_URL =
-  (import.meta.env.VITE_RUNS_API_URL as string | undefined) ??
-  "https://your-ngrok-url.ngrok.app/runs/current";
-
-const POLL_MS = 3000;
-
-function isNonEmpty(d: Partial<RunsData> | null | undefined): d is RunsData {
-  if (!d) return false;
-  return (
-    !!d.jobSpec &&
-    Array.isArray(d.quotes) &&
-    d.quotes.length > 0 &&
-    Array.isArray(d.policyDecisions) &&
-    Array.isArray(d.ranking)
-  );
-}
-
-export function useRunsData(): RunsData {
-  const [data, setData] = useState<RunsData>(MOCK);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function tick() {
-      try {
-        const res = await fetch(RUNS_URL, {
-          headers: { accept: "application/json" },
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const json = (await res.json()) as Partial<RunsData>;
-        if (cancelled) return;
-        if (isNonEmpty(json)) setData(json);
-      } catch {
-        // silent fallback — keep last good (or mock) data
-      }
-    }
-
-    tick();
-    const id = setInterval(tick, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
+const CATEGORY_LABELS: Record<string, string> = {
+  BASE_GLASS_AND_INSTALL: "Glass & install",
+  ADAS_CALIBRATION: "ADAS calibration",
+  MOBILE_SERVICE: "Mobile service",
+  MOLDINGS_CLIPS_SENSOR_KIT: "Moldings / clips",
+  DISPOSAL_ENVIRONMENTAL: "Disposal",
+  SHOP_SUPPLIES: "Shop supplies",
+  TAX: "Tax",
+  DISCOUNT: "Discount",
+  OTHER: "Other",
+};
+function adapt(n: NegotiationData) {
+  const masked = n.intake.vehicle.vin
+    ? `${n.intake.vehicle.vin.slice(0, 3)}•••••••••${n.intake.vehicle.vin.slice(-5)}`
+    : "Not provided";
+  const jobSpec: JobSpec = {
+    hash: n.negotiationId,
+    status: "CONFIRMED",
+    vehicle: {
+      year: n.intake.vehicle.year,
+      make: n.intake.vehicle.make,
+      model: n.intake.vehicle.model,
+      source: "VOICE",
+    },
+    vin: {
+      masked,
+      full: "",
+      source: n.intake.sources.some((s) => s.kind === "DOCUMENT") ? "DOCUMENT" : "VOICE",
+    },
+    service: { type: "Windshield replacement", source: "VOICE" },
+    payment: { type: "Cash-pay", source: "VOICE" },
+    location: { zip: n.intake.postalCode, source: "VOICE" },
+    adas: {
+      confirmed: n.intake.vehicle.frontCamera,
+      source: "VOICE",
+      note: n.intake.vehicle.frontCamera ? "Front camera reported by user" : "Not reported",
+    },
+    schedule: { windows: [], source: "VOICE" },
+  };
+  const quotes: Quote[] = [...n.offers]
+    .sort((a, b) => Number(b.stage === "NEGOTIATED") - Number(a.stage === "NEGOTIATED"))
+    .map((o) => ({
+      quoteId: o.quoteId,
+      provider: n.providers.find((p) => p.providerId === o.providerId)?.name ?? o.providerId,
+      location: "Phone quote",
+      callStatus: "COMPLETE",
+      jobSpecHash: n.negotiationId,
+      lineItems: o.lineItems.map((item) => ({
+        ...item,
+        category: CATEGORY_LABELS[item.category] ?? item.category,
+        status: item.status === "NOT_APPLICABLE" ? "EXCLUDED" : item.status,
+      })),
+      transcriptTurns: [],
+      events: n.events
+        .filter((e) => e.detail.includes(o.providerId))
+        .map((e) => ({
+          id: e.eventId,
+          kind: "LOG",
+          text: e.detail,
+          t: new Date(e.at).toLocaleTimeString(),
+        })),
+      redFlags: [...o.redFlags.map((f) => f.detail), ...n.redFlags.map((f) => f.detail)],
+      originalOfferMinor: o.stage === "INITIAL" ? o.totals.statedAllInMinor : undefined,
+      revisedOfferMinor: o.stage === "NEGOTIATED" ? o.totals.statedAllInMinor : undefined,
+    }));
+  const calls: Quote[] = n.calls.map((call) => ({
+    quoteId: call.callId,
+    provider:
+      n.providers.find((provider) => provider.providerId === call.providerId)?.name ??
+      call.providerId.replaceAll("_", " "),
+    location: call.outcome
+      ? `${call.outcome.replaceAll("_", " ")}${call.reason ? ` · ${call.reason}` : ""}`
+      : "Call in progress",
+    callStatus:
+      call.status === "QUEUED" ? "QUEUED" : call.status === "IN_PROGRESS" ? "ON_CALL" : "COMPLETE",
+    jobSpecHash: n.negotiationId,
+    lineItems: [],
+    transcriptTurns: call.transcript.map((turn) => ({
+      turnId: turn.turnId,
+      speaker: turn.speaker,
+      text: turn.text,
+      timestamp:
+        turn.timeSeconds == null ? "--:--" : `00:${String(turn.timeSeconds).padStart(2, "0")}`,
+    })),
+    events: n.events
+      .filter((event) => event.type === "CALL_RECORDED" && event.detail.includes(call.providerId))
+      .map((event) => ({
+        id: event.eventId,
+        kind: "LOG",
+        text: event.detail,
+        t: new Date(event.at).toLocaleTimeString(),
+      })),
+    redFlags: [],
+  }));
+  const ranking: RankingEntry[] = quotes.map((q) => {
+    const completeness = Math.round(
+      (q.lineItems.filter((item) => item.status !== "UNKNOWN").length /
+        Math.max(q.lineItems.length, 1)) *
+        100,
+    );
+    const trust = q.redFlags.length ? 45 : 100;
+    const logistics = q.lineItems.some((item) => item.category === "Mobile service") ? 75 : 50;
+    const price = 100;
+    return {
+      quoteId: q.quoteId,
+      provider: q.provider,
+      score: Math.round((price + completeness + trust + logistics) / 4),
+      componentScores: { price, completeness, trust, logistics },
+      visiblePenalties: q.redFlags,
+      explanation: n.recommendation?.summary ?? "Awaiting validated recommendation",
     };
+  });
+  const policyDecisions: PolicyDecision[] = n.policyDecisions.map((decision) => ({
+    id: decision.decisionId,
+    decision: decision.decision,
+    allowedStatement: decision.allowedStatement ?? undefined,
+    denyReason: decision.denyReason ?? undefined,
+    timestamp: new Date(decision.at).toLocaleTimeString(),
+  }));
+  return { jobSpec, quotes, calls, ranking, policyDecisions };
+}
+export async function api(path: string, init?: RequestInit) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+  });
+  const body = await response.json().catch(() => ({ error: "Invalid server response" }));
+  if (!response.ok) throw new Error(body.error ?? `Request failed (${response.status})`);
+  return body;
+}
+export function useRunsData(): RunsData {
+  const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
+  const [connection, setConnection] = useState<RunsData["connection"]>("loading");
+  const [error, setError] = useState<string | null>(null);
+  const refresh = useCallback(async () => {
+    try {
+      const n = await api("/api/negotiations/current");
+      setNegotiation(n);
+      setConnection("live");
+      setError(null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Backend unavailable";
+      setNegotiation(null);
+      setConnection(message.includes("no current") ? "empty" : "error");
+      setError(message);
+    }
   }, []);
-
-  return data;
+  useEffect(() => {
+    void refresh();
+    const poll = window.setInterval(() => void refresh(), 3000);
+    return () => window.clearInterval(poll);
+  }, [refresh]);
+  const mapped = negotiation
+    ? adapt(negotiation)
+    : { jobSpec: blankSpec, quotes: [], calls: [], ranking: [], policyDecisions: [] };
+  return { ...mapped, negotiation, connection, error, refresh };
 }

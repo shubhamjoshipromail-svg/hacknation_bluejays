@@ -109,86 +109,95 @@ function ComparePage() {
               don't invent zeros.
             </p>
           </div>
-          <HashChip hash={QUOTES[0].jobSpecHash} />
+          {QUOTES[0] && <HashChip hash={QUOTES[0].jobSpecHash} />}
         </div>
       </header>
 
       <div className="panel overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-panel-2/60 text-left">
-                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Category
-                </th>
-                {QUOTES.map((q) => (
-                  <th key={q.quoteId} className="px-4 py-3 text-right min-w-[200px]">
-                    <div className="text-sm font-semibold">{q.provider}</div>
-                    <div className="text-[11px] font-normal text-muted-foreground">
-                      {q.location}
-                    </div>
-                    {q.redFlags.length > 0 && (
-                      <div className="mt-1 flex flex-wrap justify-end gap-1">
-                        {q.redFlags.map((f) => (
-                          <span
-                            key={f}
-                            className="inline-flex items-center gap-1 rounded-sm border border-danger/40 bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger"
-                          >
-                            <AlertTriangle className="h-2.5 w-2.5" /> {f}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+        {QUOTES.length === 0 && (
+          <div className="p-8 text-sm text-muted-foreground">
+            No validated quote is available yet. This page updates after the sandbox call completes.
+          </div>
+        )}
+        {QUOTES.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-panel-2/60 text-left">
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Category
                   </th>
+                  {QUOTES.map((q) => (
+                    <th key={q.quoteId} className="px-4 py-3 text-right min-w-[200px]">
+                      <div className="text-sm font-semibold">{q.provider}</div>
+                      <div className="text-[11px] font-normal text-muted-foreground">
+                        {q.location}
+                      </div>
+                      {q.redFlags.length > 0 && (
+                        <div className="mt-1 flex flex-wrap justify-end gap-1">
+                          {q.redFlags.map((f) => (
+                            <span
+                              key={f}
+                              className="inline-flex items-center gap-1 rounded-sm border border-danger/40 bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger"
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5" /> {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CATEGORIES.map((cat) => (
+                  <tr key={cat} className="border-b border-border/60 hover:bg-panel-2/30">
+                    <td className="px-4 py-3 align-top">
+                      <div className="text-sm">{cat}</div>
+                    </td>
+                    {QUOTES.map((q) => {
+                      const li = findItem(q, cat);
+                      return (
+                        <Cell
+                          key={q.quoteId}
+                          item={li}
+                          redFlag={redFlagsByQuote[q.quoteId]?.[cat]}
+                          onClick={() => li && setDrawer({ quote: q, item: li })}
+                        />
+                      );
+                    })}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {CATEGORIES.map((cat) => (
-                <tr key={cat} className="border-b border-border/60 hover:bg-panel-2/30">
-                  <td className="px-4 py-3 align-top">
-                    <div className="text-sm">{cat}</div>
+                <tr className="border-t-2 border-primary/40 bg-primary/[0.04]">
+                  <td className="px-4 py-4 align-top">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                      ALL-IN TOTAL
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      verified categories only
+                    </div>
                   </td>
                   {QUOTES.map((q) => {
-                    const li = findItem(q, cat);
+                    const total = totalMinor(q.lineItems);
+                    const unknown = hasUnknown(q.lineItems);
                     return (
-                      <Cell
-                        key={q.quoteId}
-                        item={li}
-                        redFlag={redFlagsByQuote[q.quoteId]?.[cat]}
-                        onClick={() => li && setDrawer({ quote: q, item: li })}
-                      />
+                      <td key={q.quoteId} className="px-4 py-4 text-right align-top">
+                        <div className="mono text-lg font-semibold text-foreground">
+                          {formatMoney(total)}
+                        </div>
+                        {unknown && (
+                          <div className="mt-0.5 mono text-[10px] text-warning">
+                            + unknown categories
+                          </div>
+                        )}
+                      </td>
                     );
                   })}
                 </tr>
-              ))}
-              <tr className="border-t-2 border-primary/40 bg-primary/[0.04]">
-                <td className="px-4 py-4 align-top">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                    ALL-IN TOTAL
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">verified categories only</div>
-                </td>
-                {QUOTES.map((q) => {
-                  const total = totalMinor(q.lineItems);
-                  const unknown = hasUnknown(q.lineItems);
-                  return (
-                    <td key={q.quoteId} className="px-4 py-4 text-right align-top">
-                      <div className="mono text-lg font-semibold text-foreground">
-                        {formatMoney(total)}
-                      </div>
-                      {unknown && (
-                        <div className="mt-0.5 mono text-[10px] text-warning">
-                          + unknown categories
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <p className="mt-4 text-[11px] text-muted-foreground">
