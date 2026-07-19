@@ -1,0 +1,25 @@
+{
+  "id": "RECOVER-05",
+  "name": "Call disconnects after partial pricing",
+  "version": 1,
+  "persona": "premium_chain",
+  "intake": { "service": "NOT_SURE", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Northside Auto Glass",
+    "responses": {
+      "SERVICE_RECOMMENDATION": [
+        { "utterance": "That'll be a replacement for sure.", "facts": [ { "key": "SERVICE_RECOMMENDATION", "status": "KNOWN", "value": "replacement" } ] }
+      ],
+      "TOTAL": [
+        { "utterance": "Glass and install runs eight hundred, calibration one fifty on top of that, and, hold on a second...", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 80000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "required, priced separately", "item_status": "INCLUDED" },
+          { "key": "ADAS_PRICE", "status": "KNOWN", "value": "calibration", "amount_minor": 15000, "item_status": "INCLUDED" }
+        ] }
+      ]
+    }
+  },
+  "events": [ { "type": "DISCONNECT", "afterProviderTurns": 2 } ],
+  "privateTruth": { "baseMinor": 80000, "calibrationMinor": 15000, "taxMinor": null, "totalMinor": null },
+  "expected": { "outcome": "DROPPED", "finalTotalMinor": null, "reconciliation": null, "mustResolve": ["BASE_PRICE"], "persistFacts": true }
+}

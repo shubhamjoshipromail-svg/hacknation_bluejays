@@ -1,0 +1,45 @@
+{
+  "id": "PRICE-02",
+  "name": "Hidden calibration fee behind a headline price",
+  "version": 1,
+  "persona": "busy_lowballer",
+  "intake": { "service": "NOT_SURE", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Rick's Discount Auto Glass",
+    "responses": {
+      "SERVICE_RECOMMENDATION": [
+        { "utterance": "Yeah that's a replacement, can't repair a crack like that.", "facts": [ { "key": "SERVICE_RECOMMENDATION", "status": "KNOWN", "value": "replacement" } ] }
+      ],
+      "TOTAL": [
+        { "utterance": "Two eighty-five installed. When do you want to come in?", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "installed headline price", "amount_minor": 28500, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "AMBIGUOUS", "value": "two eighty-five headline, unclear whether all-in" }
+        ] },
+        { "when": ["ADAS_INCLUDED", "TAX"], "utterance": "Alright, with the camera cal and tax you're at six twenty-seven out the door.", "facts": [
+          { "key": "TOTAL", "status": "KNOWN", "value": "out the door", "amount_minor": 62700 },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "includes calibration and tax", "item_status": "INCLUDED" }
+        ] }
+      ],
+      "ALL_IN_SCOPE": [
+        { "utterance": "That's the install price. It covers what you need.", "facts": [ { "key": "ALL_IN_SCOPE", "status": "AMBIGUOUS", "value": "vague, would not itemize" } ] }
+      ],
+      "TAX": [
+        { "utterance": "Tax is another forty-two on top.", "facts": [ { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 4200, "item_status": "INCLUDED" } ] }
+      ],
+      "GLASS_TYPE": [
+        { "utterance": "Aftermarket glass, same as OEM basically.", "facts": [ { "key": "GLASS_TYPE", "status": "KNOWN", "value": "aftermarket" } ] }
+      ],
+      "WARRANTY": [
+        { "utterance": "One year on workmanship.", "facts": [ { "key": "WARRANTY", "status": "KNOWN", "value": "one year workmanship" } ] }
+      ],
+      "ADAS_INCLUDED": [
+        { "utterance": "Oh, yeah, that Tiguan's got the camera. Calibration is another three hundred.", "facts": [
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "required, charged separately", "amount_minor": 30000, "item_status": "INCLUDED" },
+          { "key": "ADAS_TYPE", "status": "KNOWN", "value": "static" }
+        ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 28500, "calibrationMinor": 30000, "taxMinor": 4200, "totalMinor": 62700 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 62700, "reconciliation": "MATCH", "mustResolve": ["ADAS_INCLUDED", "TAX", "TOTAL", "ALL_IN_SCOPE"] }
+}

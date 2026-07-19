@@ -1,0 +1,33 @@
+{
+  "id": "SPEC-03",
+  "name": "Missing vehicle detail identified by the provider",
+  "version": 1,
+  "persona": "premium_chain",
+  "intake": { "service": "NOT_SURE", "features": ["NOT_SURE"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Metro Glass Works",
+    "responses": {
+      "SERVICE_RECOMMENDATION": [
+        { "utterance": "That size crack means replacement, not repair.", "facts": [ { "key": "SERVICE_RECOMMENDATION", "status": "KNOWN", "value": "replacement" } ] }
+      ],
+      "TOTAL": [
+        { "utterance": "You're at nine ninety-eight all-in: eight hundred glass and labor, one fifty calibration, forty-eight tax. OEE glass with a lifetime workmanship warranty, everything included.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and labor", "amount_minor": 80000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 4800, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "all-in total", "amount_minor": 99800 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "OEE" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "lifetime workmanship" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "glass, labor, calibration, and tax all included", "item_status": "INCLUDED" }
+        ] }
+      ],
+      "ADAS_INCLUDED": [
+        { "utterance": "Let me check that trim. Yes, the twenty twenty-one Tiguan has the front camera package, so it needs calibration. We do a dynamic cal, included at one fifty.", "facts": [
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "front camera present, calibration included", "amount_minor": 15000, "item_status": "INCLUDED" },
+          { "key": "ADAS_TYPE", "status": "KNOWN", "value": "dynamic" }
+        ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 80000, "calibrationMinor": 15000, "taxMinor": 4800, "totalMinor": 99800 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 99800, "reconciliation": "MATCH", "mustResolve": ["ADAS_INCLUDED", "ADAS_TYPE", "TOTAL"] }
+}
