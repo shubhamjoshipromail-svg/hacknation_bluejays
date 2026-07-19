@@ -51,27 +51,27 @@
 
 :root {
   color-scheme: dark;
-  --radius: 0.5rem;
-  /* Fintech dark: near-black with a hint of blue */
-  --background: oklch(0.16 0.014 260);
+  --radius: 0.75rem;
+  /* Deep operational canvas: calm enough for long sessions, vivid where action matters. */
+  --background: oklch(0.145 0.019 263);
   --foreground: oklch(0.96 0.005 260);
-  --panel: oklch(0.19 0.015 260);
-  --panel-2: oklch(0.22 0.016 260);
+  --panel: oklch(0.185 0.022 263);
+  --panel-2: oklch(0.215 0.024 263);
   --card: oklch(0.19 0.015 260);
   --card-foreground: oklch(0.96 0.005 260);
   --popover: oklch(0.2 0.016 260);
   --popover-foreground: oklch(0.96 0.005 260);
-  --primary: oklch(0.78 0.16 155);
+  --primary: oklch(0.82 0.17 151);
   --primary-foreground: oklch(0.16 0.014 260);
   --secondary: oklch(0.26 0.018 260);
   --secondary-foreground: oklch(0.96 0.005 260);
   --muted: oklch(0.24 0.016 260);
-  --muted-foreground: oklch(0.68 0.02 260);
+  --muted-foreground: oklch(0.7 0.024 260);
   --accent: oklch(0.28 0.02 260);
   --accent-foreground: oklch(0.96 0.005 260);
   --destructive: oklch(0.62 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.28 0.018 260);
+  --border: oklch(0.285 0.025 263);
   --input: oklch(0.26 0.018 260);
   --ring: oklch(0.65 0.14 200);
   --success: oklch(0.75 0.16 155);
@@ -82,7 +82,7 @@
   --danger-foreground: oklch(0.98 0 0);
   --info: oklch(0.7 0.14 230);
 
-  --sidebar: oklch(0.14 0.013 260);
+  --sidebar: oklch(0.125 0.019 263);
   --sidebar-foreground: oklch(0.9 0.005 260);
   --sidebar-primary: oklch(0.78 0.16 155);
   --sidebar-primary-foreground: oklch(0.16 0.014 260);
@@ -91,16 +91,33 @@
   --sidebar-border: oklch(0.24 0.016 260);
   --sidebar-ring: oklch(0.65 0.14 200);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.78 0.16 155 / 0.15), oklch(0.65 0.14 200 / 0.1));
-  --shadow-panel: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px -12px oklch(0 0 0 / 0.5);
-  --shadow-glow: 0 0 40px -10px oklch(0.78 0.16 155 / 0.35);
+  --gradient-hero: linear-gradient(
+    125deg,
+    oklch(0.82 0.17 151 / 0.16),
+    oklch(0.7 0.14 230 / 0.09) 55%,
+    transparent 85%
+  );
+  --shadow-panel: 0 1px 0 oklch(1 0 0 / 0.055) inset, 0 20px 55px -34px oklch(0 0 0 / 0.8);
+  --shadow-glow: 0 0 48px -16px oklch(0.82 0.17 151 / 0.42);
 }
 
 @utility panel {
-  background-color: var(--color-panel);
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--color-panel-2) 42%, var(--color-panel)),
+    var(--color-panel) 42%
+  );
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
+}
+
+@utility page-shell {
+  width: 100%;
+  max-width: 92rem;
+  margin-inline: auto;
+  padding: 2.25rem clamp(1rem, 3vw, 3rem) 4rem;
+  animation: page-enter 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @utility mono {
@@ -127,13 +144,172 @@
     font-family: var(--font-sans);
   }
   body {
-    background-color: var(--color-background);
+    background:
+      radial-gradient(circle at 74% -10%, oklch(0.55 0.12 220 / 0.12), transparent 38rem),
+      radial-gradient(circle at 22% 110%, oklch(0.72 0.16 151 / 0.07), transparent 32rem),
+      var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
+    min-width: 320px;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
   }
   ::selection {
     background: color-mix(in oklab, var(--color-primary) 40%, transparent);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes signal-drift {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scaleX(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@layer components {
+  .page-shell > header:first-child {
+    position: relative;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.65rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
+  }
+
+  .page-shell > header:first-child::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 5rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-primary), transparent);
+  }
+
+  .page-shell h1 {
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .panel {
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .panel:hover {
+    border-color: color-mix(in oklab, var(--color-border) 60%, var(--color-primary) 40%);
+    box-shadow:
+      var(--shadow-panel),
+      0 0 0 1px oklch(1 0 0 / 0.018) inset;
+  }
+
+  .interactive-row {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .interactive-row:hover {
+    transform: translateX(2px);
+  }
+
+  .signal-bars > i {
+    animation: signal-drift 1.4s ease-in-out infinite;
+    transform-origin: left center;
+  }
+
+  .signal-bars > i:nth-child(2) {
+    animation-delay: 130ms;
+  }
+  .signal-bars > i:nth-child(3) {
+    animation-delay: 260ms;
+  }
+  .signal-bars > i:nth-child(4) {
+    animation-delay: 390ms;
+  }
+
+  .drawer-panel {
+    animation: drawer-enter 260ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+  }
+
+  .comparison-table th:first-child,
+  .comparison-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: color-mix(in oklab, var(--color-panel) 96%, transparent);
+    box-shadow: 1px 0 0 var(--color-border);
+  }
+
+  .comparison-table thead th:first-child {
+    z-index: 3;
+    background: var(--color-panel-2);
+  }
+}
+
+@media (max-width: 767px) {
+  .page-shell {
+    padding-top: 1.5rem;
+    padding-bottom: 6.5rem;
+  }
+
+  .page-shell > header:first-child {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .hash-chip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

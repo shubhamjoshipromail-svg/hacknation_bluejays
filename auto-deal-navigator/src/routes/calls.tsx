@@ -74,8 +74,13 @@ function EventLine({ e }: { e: Quote["events"][number] }) {
 
 function CallCard({ q }: { q: Quote }) {
   return (
-    <article className="panel flex flex-col overflow-hidden">
-      <header className="flex items-start justify-between gap-2 border-b border-border bg-panel-2/60 px-4 py-3">
+    <article
+      className={cn(
+        "panel flex flex-col overflow-hidden",
+        q.callStatus === "ON_CALL" && "border-info/40 shadow-[0_0_38px_-24px_var(--color-info)]",
+      )}
+    >
+      <header className="flex items-start justify-between gap-2 border-b border-border bg-panel-2/55 px-4 py-4">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold truncate">{q.provider}</h3>
           <p className="text-[11px] text-muted-foreground truncate">{q.location}</p>
@@ -95,7 +100,7 @@ function CallCard({ q }: { q: Quote }) {
           </span>
           <Radio className="h-3 w-3 text-primary" />
         </div>
-        <div className="max-h-64 overflow-y-auto p-3 space-y-2 text-[12px] leading-relaxed">
+        <div className="max-h-72 overflow-y-auto p-3.5 space-y-3 text-[12px] leading-relaxed">
           {q.transcriptTurns.map((t) => (
             <div key={t.turnId} className="flex gap-2">
               <span className="mono text-[9px] text-muted-foreground/60 shrink-0 w-9 pt-0.5">
@@ -142,35 +147,38 @@ function CallCard({ q }: { q: Quote }) {
 
 function LiveCallsPage() {
   const { quotes: QUOTES } = useRunsData();
+  const complete = QUOTES.filter((q) => q.callStatus === "COMPLETE").length;
+  const onCall = QUOTES.filter((q) => q.callStatus === "ON_CALL").length;
+  const queued = QUOTES.filter((q) => q.callStatus === "QUEUED").length;
   return (
-    <div className="px-6 py-8 md:px-10 md:py-10">
+    <div className="page-shell">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 02 · Live Calls
         </div>
-        <div className="mt-3 flex items-end justify-between gap-6">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Live calls</h1>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Live calls</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Three providers dialed in parallel. Every transcript turn, tactic, and line-item log
               is streamed to the audit trail.
             </p>
           </div>
-          <div className="hidden md:flex items-center gap-4 mono text-[11px] text-muted-foreground">
+          <div className="hidden md:flex items-center gap-4 rounded-full border border-border bg-panel/55 px-4 py-2.5 mono text-[10px] text-muted-foreground shadow-sm">
             <span>
-              <span className="text-success">●</span> 2 complete
+              <span className="text-success">●</span> {complete} complete
             </span>
             <span>
-              <span className="text-info">●</span> 1 on call
+              <span className="text-info">●</span> {onCall} on call
             </span>
             <span>
-              <span className="text-muted-foreground">●</span> 0 queued
+              <span className="text-muted-foreground">●</span> {queued} queued
             </span>
           </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {QUOTES.map((q) => (
           <CallCard key={q.quoteId} q={q} />
         ))}

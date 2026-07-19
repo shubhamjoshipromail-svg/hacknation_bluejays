@@ -111,11 +111,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <div className="min-h-screen flex flex-col bg-transparent text-foreground">
         <DemoBanner />
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 flex-col md:flex-row">
           <AppSidebar />
-          <main className="flex-1 min-w-0 overflow-x-hidden">
+          <main className="relative flex-1 min-w-0 overflow-x-hidden">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,oklch(1_0_0/.018),transparent)]" />
             <Outlet />
           </main>
         </div>

@@ -96,14 +96,16 @@ function ComparePage() {
   };
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-10">
+    <div className="page-shell">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 03 · Compare Quotes
         </div>
-        <div className="mt-3 flex items-end justify-between gap-4">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Itemized comparison</h1>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              Itemized comparison
+            </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Every fee category, side by side. Amber "?" means the shop never mentioned it — we
               don't invent zeros.
@@ -115,7 +117,7 @@ function ComparePage() {
 
       <div className="panel overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="comparison-table w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-panel-2/60 text-left">
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -145,7 +147,10 @@ function ComparePage() {
             </thead>
             <tbody>
               {CATEGORIES.map((cat) => (
-                <tr key={cat} className="border-b border-border/60 hover:bg-panel-2/30">
+                <tr
+                  key={cat}
+                  className="border-b border-border/60 transition-colors hover:bg-panel-2/45"
+                >
                   <td className="px-4 py-3 align-top">
                     <div className="text-sm">{cat}</div>
                   </td>
@@ -213,10 +218,14 @@ function EvidenceDrawer({ ctx, onClose }: { ctx: DrawerCtx; onClose: () => void 
     <div
       className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm"
       onClick={onClose}
+      role="presentation"
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
+        className="drawer-panel h-full w-full max-w-md overflow-y-auto border-l border-border bg-panel shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Evidence for ${item.category}`}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
@@ -225,7 +234,11 @@ function EvidenceDrawer({ ctx, onClose }: { ctx: DrawerCtx; onClose: () => void 
             </div>
             <h3 className="text-sm font-semibold">{item.category}</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            aria-label="Close evidence"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </header>

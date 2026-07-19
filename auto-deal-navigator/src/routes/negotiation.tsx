@@ -62,14 +62,14 @@ function NegotiationPage() {
   ];
 
   return (
-    <div className="px-6 py-8 md:px-10 md:py-10">
+    <div className="page-shell">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <span className="h-1 w-6 bg-primary" /> Step 04 · Negotiation
         </div>
-        <div className="mt-3 flex items-end justify-between gap-4">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Negotiation trail</h1>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Negotiation trail</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Every tactic runs through the policy engine. The agent may only cite a fact after it
               has been minted as a VerifiedFact.
@@ -85,13 +85,13 @@ function NegotiationPage() {
           className="absolute inset-0 opacity-70 pointer-events-none"
           style={{ background: "var(--gradient-hero)" }}
         />
-        <div className="relative flex flex-wrap items-center justify-between gap-6 px-6 py-6">
+        <div className="relative flex flex-wrap items-center justify-between gap-6 px-5 py-7 sm:px-7">
           <div>
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
               <Sparkles className="h-3 w-3" /> Verified savings
             </div>
             <div className="mt-2 flex items-baseline gap-3">
-              <span className="mono text-4xl font-semibold text-primary drop-shadow-[0_0_20px_var(--color-primary)]">
+              <span className="mono text-4xl font-semibold tracking-[-0.05em] text-primary drop-shadow-[0_0_20px_var(--color-primary)] sm:text-5xl">
                 {formatMoney(savings)}
               </span>
               <span className="text-sm text-muted-foreground">on {primary.provider}</span>
@@ -137,7 +137,7 @@ function NegotiationPage() {
                 TACTIC: { dot: "bg-warning", text: "text-warning", label: "TACTIC" },
               }[step.kind];
               return (
-                <li key={i} className="pl-6 relative">
+                <li key={i} className="interactive-row pl-6 relative">
                   <span
                     className={cn(
                       "absolute -left-[7px] top-1.5 h-3 w-3 rounded-full ring-4 ring-background",
