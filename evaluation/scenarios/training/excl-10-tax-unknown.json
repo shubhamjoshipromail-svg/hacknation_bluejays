@@ -1,0 +1,31 @@
+{
+  "id": "EXCL-10",
+  "name": "Tax excluded with unknown amount",
+  "version": 1,
+  "persona": "independent",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "County Line Auto Glass",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "Six hundred flat for everything on our end, glass, install, calibration. Tax is extra though, and that depends on the county.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass, install, and calibration package", "amount_minor": 60000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "included in package", "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "AMBIGUOUS", "value": "six hundred before tax, no all-in figure" },
+          { "key": "TAX", "status": "AMBIGUOUS", "value": "excluded, amount unknown", "item_status": "EXCLUDED" }
+        ] }
+      ],
+      "TAX": [
+        { "utterance": "Can't tell you exactly, the county sets it. You'd see it on the final bill.", "facts": [ { "key": "TAX", "status": "REFUSED", "value": "amount only on final bill", "item_status": "EXCLUDED" } ] }
+      ],
+      "GLASS_TYPE": [
+        { "utterance": "OEE glass.", "facts": [ { "key": "GLASS_TYPE", "status": "KNOWN", "value": "OEE" } ] }
+      ],
+      "WARRANTY": [
+        { "utterance": "Lifetime on workmanship.", "facts": [ { "key": "WARRANTY", "status": "KNOWN", "value": "lifetime workmanship" } ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 60000, "calibrationMinor": null, "taxMinor": null, "totalMinor": null },
+  "expected": { "outcome": "CALLBACK_REQUIRED", "finalTotalMinor": null, "reconciliation": null, "mustResolve": ["BASE_PRICE"], "mustStayUnresolved": ["TOTAL", "TAX"], "persistFacts": true }
+}

@@ -2,8 +2,9 @@ import { dispatchTool } from "../tools.js";
 
 export type WireFact={key:string;status:"KNOWN"|"NOT_APPLICABLE"|"REFUSED"|"AMBIGUOUS";value?:string;amount_minor?:number;item_status?:"INCLUDED"|"EXCLUDED"|"NOT_APPLICABLE"|"UNKNOWN";confirmed_correction?:boolean};
 export type ShopVariant={when?:string[];utterance:string;facts:WireFact[]};
-export type Expected={outcome:"QUOTED"|"CALLBACK_REQUIRED"|"DECLINED"|"DROPPED";finalTotalMinor:number|null;reconciliation:"MATCH"|"TOTAL_MISMATCH"|"NOT_COMPARABLE_YET"|null;mustResolve:string[];appointmentCompatible?:boolean;persistFacts?:boolean};
-export type Scenario={id:string;name:string;version:number;persona:string;intake:{service?:"REPAIR"|"REPLACEMENT"|"NOT_SURE";features?:Array<"FRONT_CAMERA"|"RAIN_SENSOR"|"HEATED_GLASS"|"HUD"|"NOT_SURE">;schedulePreference?:string|null};shop:{displayName:string;responses:Record<string,ShopVariant[]>};events?:Array<{type:"DISCONNECT";afterProviderTurns:number}>;privateTruth:Record<string,number|null>;expected:Expected};
+export type Expected={outcome:"QUOTED"|"CALLBACK_REQUIRED"|"DECLINED"|"DROPPED";finalTotalMinor:number|null;reconciliation:"MATCH"|"TOTAL_MISMATCH"|"NOT_COMPARABLE_YET"|null;mustResolve:string[];mustStayUnresolved?:string[];expectRedFlags?:string[];appointmentCompatible?:boolean;persistFacts?:boolean};
+export type ScenarioProvider={providerId:string;displayName:string;responses:Record<string,ShopVariant[]>};
+export type Scenario={id:string;name:string;version:number;persona:string;mode?:"INTAKE"|"NEGOTIATION";intake:{service?:"REPAIR"|"REPLACEMENT"|"NOT_SURE";features?:Array<"FRONT_CAMERA"|"RAIN_SENSOR"|"HEATED_GLASS"|"HUD"|"NOT_SURE">;schedulePreference?:string|null};shop?:{displayName:string;responses:Record<string,ShopVariant[]>};providers?:ScenarioProvider[];negotiation?:{target:string;concessionMinor:number|null;expectDecision:"ALLOW"|"DENY";expectedFinalMinor:number|null};events?:Array<{type:"DISCONNECT";afterProviderTurns:number}>;privateTruth:Record<string,number|null>;expected:Expected};
 export type CallState={canClose:boolean;completionStatus:string;criticalGaps:string[];optionalGaps:string[];contradictions:Array<{key:string;resolved:boolean}>;recommendedGoals:Array<{key:string;question:string}>;askedTopics:string[]};
 export type DriverMode="adaptive"|"naive";
 export type DriverResult={closeError:string|null;providerTurns:number;outcome:unknown};
@@ -14,7 +15,7 @@ export class SimulatedShop{
   private consumed=new Set<string>();
   constructor(private scenario:Scenario){}
   available(key:string):number|null{
-    const variants=this.scenario.shop.responses[key]??[];
+    const variants=this.scenario.shop?.responses[key]??[];
     let pick:number|null=null;
     variants.forEach((v,i)=>{if((v.when??[]).every(k=>this.asked.has(k))&&!this.consumed.has(`${key}:${i}`))pick=i});
     return pick;
@@ -24,7 +25,7 @@ export class SimulatedShop{
     this.asked.add(key);
     if(pick==null)return null;
     this.consumed.add(`${key}:${pick}`);
-    return (this.scenario.shop.responses[key]??[])[pick];
+    return (this.scenario.shop?.responses[key]??[])[pick];
   }
 }
 
@@ -62,4 +63,25 @@ export function runDriver(scenario:Scenario,ids:{callId:string;providerId:string
   }
   const fallback=close("CALLBACK_REQUIRED","turn limit reached");
   return {closeError,providerTurns,outcome:fallback};
+}
+
+export type NegotiationResult={decision:{decision:"ALLOW"|"DENY";allowedStatement:string|null;factIds:string[]};negotiatedQuoteId:string|null;outcome:unknown};
+
+/**
+ * Drives a negotiation callback exactly as the negotiation prompt instructs: fetch the prior
+ * quote, request PRICE_MATCH leverage, speak only the policy-approved statement, and record
+ * a counteroffer only if the provider actually concedes. Never implies a competitor on DENY.
+ */
+export function runNegotiationDriver(scenario:Scenario,ids:{callId:string;providerId:string;conversationId:string}):NegotiationResult{
+  const ctx={call_id:ids.callId,provider_id:ids.providerId,conversation_id:ids.conversationId};
+  const dispatch=(name:string,args:Record<string,unknown>={})=>dispatchTool(name,{...ctx,...args});
+  const prior=dispatch("get_prior_quote") as {initialQuoteId:string;allInMinor:number};
+  const decision=dispatch("request_leverage",{desired_concession:"PRICE_MATCH",round:1,prior_rounds:0}) as NegotiationResult["decision"];
+  if(decision.decision!=="ALLOW"||!decision.allowedStatement){
+    return {decision,negotiatedQuoteId:null,outcome:dispatch("close_call",{outcome:"DECLINED",reason:"no verified leverage available and provider held firm"})};
+  }
+  const concession=scenario.negotiation?.concessionMinor??0;
+  const revised=prior.allInMinor-concession;
+  const offer=dispatch("record_counteroffer",{initial_quote_id:prior.initialQuoteId,total_minor:revised,turn_id:`turn_${scenario.id}_nego`,turn_text:`I can revise the all-in total to $${(revised/100).toFixed(2)}.`}) as {quoteId:string};
+  return {decision,negotiatedQuoteId:offer.quoteId,outcome:dispatch("close_call",{outcome:"QUOTED",reason:"provider confirmed the revised all-in total"})};
 }

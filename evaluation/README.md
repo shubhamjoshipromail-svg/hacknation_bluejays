@@ -51,3 +51,8 @@ evaluation/
 - The second was fixed by this branch: `AVAILABILITY` becomes a critical fact whenever the
   intake carries a `schedulePreference`, and `recommend()` downgrades `ACCEPT` to `CLARIFY`
   until a human confirms the appointment window fits that preference.
+- Waves 2 and 3 (`wave3-full-suite.json`) expanded to 13 scenarios: contradictory totals,
+  refusal to quote, range-only pricing, booking pressure, excluded-unknown tax, stated-total
+  mismatch, and two negotiation-phase scenarios (leverage DENY without verified facts,
+  ALLOW plus recorded counteroffer with one). All passed against the post-fix brain with no
+  further product changes needed - the two earlier fixes generalize.

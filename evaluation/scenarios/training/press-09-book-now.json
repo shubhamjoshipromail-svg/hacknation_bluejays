@@ -1,0 +1,27 @@
+{
+  "id": "PRESS-09",
+  "name": "Pressure to book immediately",
+  "version": 1,
+  "persona": "busy_lowballer",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "FastGlass Express",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "Five eighty out the door: two eighty glass, two sixty calibration, forty tax, aftermarket glass, ninety-day warranty. But I can only hold that if you book right now, price goes up tomorrow.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 28000, "item_status": "INCLUDED" },
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "calibration included", "amount_minor": 26000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 4000, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "out the door", "amount_minor": 58000 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "aftermarket" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "ninety days workmanship" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "glass, calibration, and tax included", "item_status": "INCLUDED" },
+          { "key": "PRICE_CHANGE_CONDITIONS", "status": "KNOWN", "value": "price only held with immediate booking; increases tomorrow" },
+          { "key": "QUOTE_VALIDITY", "status": "KNOWN", "value": "today only" }
+        ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 28000, "calibrationMinor": 26000, "taxMinor": 4000, "totalMinor": 58000 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 58000, "reconciliation": "MATCH", "mustResolve": ["TOTAL", "PRICE_CHANGE_CONDITIONS"] }
+}

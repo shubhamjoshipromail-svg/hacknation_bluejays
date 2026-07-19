@@ -1,0 +1,33 @@
+{
+  "id": "CONTRA-06",
+  "name": "Contradictory totals require explicit confirmation",
+  "version": 1,
+  "persona": "premium_chain",
+  "intake": { "service": "REPLACEMENT", "features": ["FRONT_CAMERA"], "schedulePreference": null },
+  "shop": {
+    "displayName": "Crossroads Glass Center",
+    "responses": {
+      "TOTAL": [
+        { "utterance": "You're looking at a thousand even, all-in: eight hundred glass and install, fifty tax, everything included. OEE glass, lifetime warranty.", "facts": [
+          { "key": "BASE_PRICE", "status": "KNOWN", "value": "glass and install", "amount_minor": 80000, "item_status": "INCLUDED" },
+          { "key": "TAX", "status": "KNOWN", "value": "sales tax", "amount_minor": 5000, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "all-in total", "amount_minor": 100000 },
+          { "key": "GLASS_TYPE", "status": "KNOWN", "value": "OEE" },
+          { "key": "WARRANTY", "status": "KNOWN", "value": "lifetime workmanship" },
+          { "key": "ALL_IN_SCOPE", "status": "KNOWN", "value": "everything included", "item_status": "INCLUDED" }
+        ] },
+        { "when": ["ADAS_INCLUDED"], "utterance": "Yes, eleven hundred even is the right number. The first figure didn't have the calibration in it, my mistake.", "facts": [
+          { "key": "TOTAL", "status": "KNOWN", "value": "confirmed corrected all-in total", "amount_minor": 110000, "confirmed_correction": true }
+        ] }
+      ],
+      "ADAS_INCLUDED": [
+        { "utterance": "Ah, right, the camera calibration. That's another two fifty, so you're actually at eleven hundred total.", "facts": [
+          { "key": "ADAS_INCLUDED", "status": "KNOWN", "value": "required, additional", "amount_minor": 25000, "item_status": "INCLUDED" },
+          { "key": "TOTAL", "status": "KNOWN", "value": "revised total", "amount_minor": 110000 }
+        ] }
+      ]
+    }
+  },
+  "privateTruth": { "baseMinor": 80000, "calibrationMinor": 25000, "taxMinor": 5000, "totalMinor": 110000 },
+  "expected": { "outcome": "QUOTED", "finalTotalMinor": 110000, "reconciliation": "MATCH", "mustResolve": ["TOTAL", "ADAS_INCLUDED"] }
+}

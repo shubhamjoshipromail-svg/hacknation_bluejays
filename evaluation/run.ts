@@ -4,8 +4,8 @@ import { execSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createSandboxNegotiation, recommend, recordCall } from "../negotiation-service.js";
 import { resetStore, store } from "../store.js";
-import { runDriver, type DriverMode, type Scenario } from "./harness.js";
-import { evaluateScenario, type CheckResult } from "./checks.js";
+import { runDriver, runNegotiationDriver, type DriverMode, type Scenario } from "./harness.js";
+import { evaluateNegotiation, evaluateScenario, type CheckResult } from "./checks.js";
 
 const EVALUATOR_VERSION="1.0.0";
 const provider={providerId:"sandbox_eval",name:"Evaluation Sandbox Shop",phoneNumber:"+15555550100",locationLabel:"Eval Sandbox",source:"SANDBOX_CONFIG" as const,verified:true};
@@ -31,8 +31,26 @@ function runOne(scenario:Scenario,driver:DriverMode,seeded:boolean):RunReport{
   return {scenarioId:scenario.id,scenarioVersion:scenario.version,name:scenario.name,driver,seeded,outcome:call.outcome,reason:call.reason,statedTotalMinor:quote?.totals.statedAllInMinor??null,reconciliation:quote?.totals.reconciliation??null,providerTurns:result.providerTurns,checks,transcript:call.transcript.map(t=>({turnId:t.turnId,speaker:t.speaker,text:t.text}))};
 }
 
+function runNegotiationScenario(scenario:Scenario):RunReport{
+  resetStore();
+  const providers=scenario.providers!.map(p=>({providerId:p.providerId,name:p.displayName,phoneNumber:"+15555550100",locationLabel:"Eval Sandbox",source:"SANDBOX_CONFIG" as const,verified:true}));
+  const n=createSandboxNegotiation(intakeFor(scenario),providers) as {negotiationId:string};
+  for(const p of scenario.providers!){
+    const callId=`call_eval_${scenario.id}_${p.providerId}`,conversationId=`conv_eval_${scenario.id}_${p.providerId}`;
+    recordCall(n.negotiationId,{callId,providerId:p.providerId,conversationId,status:"IN_PROGRESS",outcome:null,reason:null});
+    runDriver({...scenario,id:`${scenario.id}_${p.providerId}`,shop:{displayName:p.displayName,responses:p.responses}},{callId,providerId:p.providerId,conversationId},"adaptive");
+  }
+  const negoCallId=`call_eval_${scenario.id}_nego`,negoConvId=`conv_eval_${scenario.id}_nego`;
+  recordCall(n.negotiationId,{callId:negoCallId,providerId:scenario.negotiation!.target,conversationId:negoConvId,phase:"NEGOTIATION",status:"IN_PROGRESS",outcome:null,reason:null});
+  const result=runNegotiationDriver(scenario,{callId:negoCallId,providerId:scenario.negotiation!.target,conversationId:negoConvId});
+  try{recommend(n.negotiationId)}catch{/* recommendation is optional for evaluation runs */}
+  const checks=evaluateNegotiation(scenario,n.negotiationId,negoCallId,result);
+  const raw=store.negotiations[n.negotiationId],call=raw.calls.find(c=>c.callId===negoCallId)!,quote=raw.offers.find(o=>o.quoteId===result.negotiatedQuoteId)??null;
+  return {scenarioId:scenario.id,scenarioVersion:scenario.version,name:scenario.name,driver:"adaptive",seeded:false,outcome:call.outcome,reason:call.reason,statedTotalMinor:quote?.totals.statedAllInMinor??null,reconciliation:quote?.totals.reconciliation??null,providerTurns:0,checks,transcript:call.transcript.map(t=>({turnId:t.turnId,speaker:t.speaker,text:t.text}))};
+}
+
 function runSuite(scenarios:Scenario[]):RunReport[]{
-  const reports=scenarios.map(s=>runOne(s,"adaptive",false));
+  const reports=scenarios.map(s=>s.mode==="NEGOTIATION"?runNegotiationScenario(s):runOne(s,"adaptive",false));
   const seededTarget=scenarios.find(s=>s.id==="PRICE-02");
   if(seededTarget)reports.push(runOne(seededTarget,"naive",true));
   return reports;
