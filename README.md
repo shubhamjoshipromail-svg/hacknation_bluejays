@@ -95,6 +95,8 @@ The UI immediately shows the configured sandbox providers and queued/in-progress
 
 The intake agent does not follow a mandatory question order. It starts with `get_call_state`, records every explicit fact from each provider answer with one `record_provider_answer` call, and chooses its next move from critical gaps, optional gaps, contradictions, and completion status returned by the backend. One answer can resolve multiple facts; repeated facts are idempotent; conflicting money requires an explicit correction before it replaces the prior value. Questions become conditional on intake and call state—for example, ADAS details are not required when the vehicle is known not to have a front camera.
 
+Buyer agents use Eleven v3 Conversational with Expressive Mode and the conversational Eric voice. The disclosure opening is non-interruptible, later turns remain interruptible, and the prompt explicitly separates provider evidence from the agent's own speech. Spoken confirmation finishes before the single silent `close_call` action, preventing truncated or repeated closing lines. Phone calls remain encoded as Twilio-compatible μ-law at 8 kHz.
+
 The separate benchmarking vertical runs before call dispatch with real provider discovery disabled. Its bundled source-derived evidence supplies a labeled directional range, warnings, and call guidance. Only two or more reconciled same-scope provider quotes can promote that range to `VERIFIED`; published benchmark ranges are never competitor leverage. Run the vertical independently with `npm run benchmark -- benchmarking/examples/request.json --offline`.
 
 ## Tests
