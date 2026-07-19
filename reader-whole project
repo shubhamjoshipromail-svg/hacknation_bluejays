@@ -1,0 +1,77 @@
+# The Negotiator — Auto Glass Quote & Negotiation Agent
+
+Built for the Hack-Nation / MIT hackathon (ElevenLabs-sponsored "The Negotiator" challenge).
+
+An AI system that calls multiple auto glass shops, gets itemized quotes over the phone, negotiates using only verified facts (never bluffs), and hands back a ranked, cited recommendation. The vertical is windshield repair/replacement, chosen because pricing is opaque, ADAS camera recalibration is a common hidden fee, and quotes are only ever given by phone.
+
+## What it does
+
+1. **Estimator (intake)** — takes a fixed job spec (vehicle, damage, ADAS camera presence, ZIP, payment preference) and freezes it into a hash so every shop is quoted against the identical job.
+2. **Caller (quote collection)** — a voice agent calls three shops with distinct negotiation styles (premium chain, independent lowballer, mobile-only operator), extracts itemized line items and a confirmed all-in total, and logs everything with a transcript citation.
+3. **Closer (negotiation + ranking)** — the same voice agent calls back the best comparable shop, negotiates using a "verified leverage" mechanism (it can only cite a competing offer if that fact was actually reconciled from a real transcript), then ranks all quotes on price, completeness, scope, schedule, and terms — with red flags for omitted calibration fees, suspicious lowballing, and total mismatches.
+
+The core design principle is **policy-heavy, model-light**: all money math, red-flag detection, leverage verification, and ranking happen in deterministic TypeScript (`policy.ts`). The LLM only ever handles conversation and prose — it cannot invent a number or a competing offer that wasn't actually verified.
+
+## Repo structure
+
+| Path | What it is |
+|---|---|
+| `config.ts` | The fixed demo job spec (2021 VW Tiguan, front ADAS camera, ZIP 28202, cash) and its frozen hash |
+| `domain.ts` | Zod schemas for every data type (quotes, outcomes, verified facts, policy decisions, recommendations) |
+| `policy.ts` | Deterministic logic: leverage verification, red flags, ranking, spec hashing |
+| `negotiation-playbook.yaml` | Named negotiation tactics grounded in real negotiation theory, with an explicit list of forbidden manipulative tactics |
+| `playbook.ts` | Loads the playbook and filters tactics by what's actually authorized for a given call |
+| `persona.*.yaml` | The three shop personas the system negotiates against (economics, concession rules, refusal triggers) |
+| `prompts.ts` | The actual ElevenLabs agent prompt — **one buyer agent**, driven by a `{{phase}}` dynamic variable (`QUOTE_COLLECTION` vs `NEGOTIATION`), not two separate agents |
+| `tools.ts` | Implementations of the 8 webhook tools the agent calls during a conversation (log items, request leverage, close call, etc.) |
+| `store.ts` | File-based JSON persistence for a run (`.data/current-run.json`, owner-only permissions) |
+| `server.ts` | Fastify server: tool endpoints + ElevenLabs post-call webhook (HMAC-verified) |
+| `textloop.ts` | Text-only closed-loop simulation of a full run (no phone calls) — runs all 3 personas, negotiates, ranks, and gate-checks the result |
+| `scripts/provision-agents.ts` | Creates/updates the ElevenLabs agents (buyer + 3 personas) and their webhook tools via the API |
+| `scripts/run-call.ts` | Places a real outbound call via Twilio/ElevenLabs for one persona/phase, or `--all` for a full quote-and-negotiate run |
+| `auto-deal-navigator/` | React/TanStack Start frontend (quote comparison, negotiation view, recommendation, call log) — reads live data from `GET /runs/current`, falls back to mock data if no backend is set |
+| `research/` | Team deep-dive docs on vertical selection (windshield, junk removal, catering) and architecture notes |
+
+## Running it
+
+**Text-only simulation (no ElevenLabs/Twilio needed):**
+```
+npm install
+cp .env.example .env   # fill in OPENAI_API_KEY at minimum
+npm start               # runs textloop.ts — full 3-shop quote + negotiate + rank + gate check
+```
+
+**Real phone calls:**
+```
+npm run server           # Fastify server, exposes /tools/* and /webhooks/elevenlabs
+# expose it publicly, e.g.:
+ngrok http 3000          # set PUBLIC_BASE_URL to the ngrok URL in .env
+npm run provision        # creates/updates the ElevenLabs agents + tools
+npm run call -- --persona premium_chain --phase QUOTE_COLLECTION --to +1XXXXXXXXXX
+npm run call:all         # calls all 3 shops, then calls back the best one to negotiate
+```
+
+Required env vars (see `.env.example`): `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_PHONE_NUMBER_ID`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TOOL_SHARED_SECRET`, `PUBLIC_BASE_URL`, `ELEVENLABS_WEBHOOK_SECRET`.
+
+**Frontend:**
+```
+cd auto-deal-navigator
+npm install
+npm run dev
+```
+
+**Tests:**
+```
+npm test         # vitest
+npm run typecheck
+```
+
+## The honesty mechanism
+
+The buyer agent is never allowed to claim a competing offer from memory or invention. Before making any competitive claim it must call `request_leverage`, which is denied unless a `VerifiedFact` exists — minted only from a quote that was reconciled against the same frozen job spec and hasn't expired. The agent may only speak back the exact `allowedClaim` string the tool returns. Max 3 concession rounds per call. Forbidden tactics (fake urgency, invented competing bids, bluffed walkaways, guilt/pressure) are hard-excluded in the playbook, not just discouraged.
+
+## Known open items (not yet reconciled across the team)
+
+- **Architecture:** `prompts.ts` already implements a single buyer agent switched by a `{{phase}}` variable. If any planning doc elsewhere describes two separate agents (intake vs. negotiation), the repo's actual code should be treated as the source of truth.
+- **Voice assignments:** `scripts/provision-agents.ts` assigns specific ElevenLabs voice IDs to the buyer and each persona — confirm these are the intended final voices before demo day.
+- **Test scenario alignment:** `config.ts`'s canonical demo spec is a 2021 VW Tiguan (VIN `3VV2B7AX0MM103995`, ZIP 28202). Make sure any live test calls or prompt drafts reference this same vehicle, not a placeholder.
